@@ -45,6 +45,11 @@ class AuditAction(models.TextChoices):
     DEPLOYMENT_STATUS_CHANGED = "DEPLOYMENT_STATUS_CHANGED", "Estado de despliegue cambiado"
     SERVICE_TOKEN_CREATED = "SERVICE_TOKEN_CREATED", "Token de servicio creado"
     SERVICE_TOKEN_REVOKED = "SERVICE_TOKEN_REVOKED", "Token de servicio revocado"
+    RELEASE_CREATED = "RELEASE_CREATED", "Versión creada"
+    RELEASE_UPDATED = "RELEASE_UPDATED", "Versión actualizada"
+    RELEASE_PUBLISHED = "RELEASE_PUBLISHED", "Versión publicada"
+    RELEASE_WITHDRAWN = "RELEASE_WITHDRAWN", "Versión retirada"
+    DEMO_ACCESS_ISSUED = "DEMO_ACCESS_ISSUED", "Acceso a demo emitido"
 
 
 class ImmutableRecordError(Exception):

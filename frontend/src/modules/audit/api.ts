@@ -67,6 +67,11 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   DEPLOYMENT_STATUS_CHANGED: "Estado de despliegue cambiado",
   SERVICE_TOKEN_CREATED: "Token de servicio creado",
   SERVICE_TOKEN_REVOKED: "Token de servicio revocado",
+  RELEASE_CREATED: "Versión creada",
+  RELEASE_UPDATED: "Versión actualizada",
+  RELEASE_PUBLISHED: "Versión publicada",
+  RELEASE_WITHDRAWN: "Versión retirada",
+  DEMO_ACCESS_ISSUED: "Acceso a demo emitido",
 };
 
 export const auditApi = {

@@ -41,6 +41,11 @@ class Project(TimeStampedModel):
     name = models.CharField("nombre", max_length=120)
     slug = models.SlugField(max_length=140, unique=True)
     description = models.TextField("descripción", blank=True)
+    client_description = models.TextField(
+        "descripción para clientes",
+        blank=True,
+        help_text="Información funcional visible en el portal de clientes.",
+    )
     logo = models.ImageField(upload_to=logo_upload_to, blank=True)
     repository_url = models.URLField("repositorio", max_length=300, blank=True)
     documentation_url = models.URLField("documentación", max_length=300, blank=True)
@@ -158,3 +163,41 @@ class ProjectAccess(TimeStampedModel):
         if self.expires_at and self.expires_at <= timezone.now():
             return "EXPIRED"
         return "ACTIVE"
+
+
+class ReleaseStatus(models.TextChoices):
+    DRAFT = "DRAFT", "Borrador"
+    PUBLISHED = "PUBLISHED", "Publicada"
+    WITHDRAWN = "WITHDRAWN", "Retirada"
+
+
+class Release(TimeStampedModel):
+    """A version shared with clients, with its release notes."""
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="releases")
+    version = models.CharField("versión", max_length=50)
+    title = models.CharField("título", max_length=120, blank=True)
+    notes = models.TextField("notas de versión", blank=True)
+    status = models.CharField(
+        max_length=16, choices=ReleaseStatus.choices, default=ReleaseStatus.DRAFT, db_index=True
+    )
+    published_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    deployment = models.ForeignKey(
+        "deployments.Deployment",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="releases",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-published_at", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["project", "version"], name="release_unique_version"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.project} {self.version}"

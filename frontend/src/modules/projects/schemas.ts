@@ -24,6 +24,7 @@ export const projectSchema = z.object({
   owner: z.string().min(1, "Selecciona un responsable."),
   status: z.enum(["PLANNING", "DEVELOPMENT", "TESTING", "AVAILABLE", "MAINTENANCE"]),
   description: z.string().trim().max(5000, "Máximo 5000 caracteres."),
+  client_description: z.string().trim().max(5000, "Máximo 5000 caracteres."),
   repository_url: httpsUrl,
   documentation_url: httpsUrl,
   site_url: z

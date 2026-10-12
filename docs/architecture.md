@@ -39,7 +39,7 @@ flowchart LR
 | D10 | **Caché de base de datos** para el rate limiting en producción | Comparte contadores entre los workers de gunicorn sin añadir Redis al MVP. |
 | D11 | **Usuarios y organizaciones no se eliminan**: se desactivan | Conserva el historial y la trazabilidad. |
 
-## Modelo de datos (Fases 1–4)
+## Modelo de datos (Fases 1–5)
 
 ```mermaid
 erDiagram
@@ -59,6 +59,9 @@ erDiagram
   PROJECT ||--o{ EVENT : ""
   DEPLOYMENT ||--o{ EVENT : "correlation_id"
   PROJECT }o--o{ SERVICE_TOKEN : "alcance"
+  PROJECT ||--o{ RELEASE : "versiones para clientes"
+  ENVIRONMENT ||--o{ DEMO_ACCESS_TOKEN : "tickets de demo"
+  USER ||--o{ DEMO_ACCESS_TOKEN : ""
 
   USER {
     uuid id PK
@@ -169,6 +172,22 @@ erDiagram
     datetime expires_at
     datetime revoked_at
   }
+  RELEASE {
+    uuid id PK
+    uuid project FK
+    string version "única por proyecto"
+    text notes "texto plano"
+    enum status "DRAFT | PUBLISHED | WITHDRAWN"
+    datetime published_at
+  }
+  DEMO_ACCESS_TOKEN {
+    uuid id PK
+    uuid environment FK "Demo"
+    uuid user FK
+    string token_hash "SHA-256, un solo uso"
+    datetime expires_at "5 min"
+    datetime redeemed_at
+  }
   AUDIT_LOG {
     uuid id PK
     datetime created_at
@@ -183,7 +202,7 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fases 1–4)
+## Roles y permisos (Fases 1–5)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
@@ -204,6 +223,9 @@ erDiagram
 | Despliegues y eventos: ver | todos | de sus proyectos | ❌ | ❌ | ❌ |
 | Despliegues: registrar o cambiar estado | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
 | Tokens de servicio | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Versiones para clientes: gestionar | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Portal: aplicaciones autorizadas, versiones publicadas, abrir demo | ❌ (usa el panel) | ❌ | ✅ (solo su organización) | ❌ | ❌ |
+| Portafolio público | ✅ | ✅ | ✅ | ✅ | ✅ (si está habilitado) |
 | Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
 | Portal `/portal` (UI) | → panel | → panel | ✅ | ✅ | → login |
 
@@ -233,6 +255,8 @@ erDiagram
 **Infraestructura**: ver las reglas completas en [phase-3.md](phase-3.md#reglas-de-negocio).
 
 **Despliegues y trazabilidad**: ver las reglas completas en [phase-4.md](phase-4.md#reglas-de-negocio).
+
+**Portal de clientes**: ver las reglas completas en [phase-5.md](phase-5.md#reglas-de-negocio).
 
 **Auditoría**
 1. Se registran el inicio y cierre de sesión, los fallos de login, los cambios y la recuperación de contraseña, todas las operaciones administrativas sobre usuarios, organizaciones y membresías, y la revocación de sesiones.

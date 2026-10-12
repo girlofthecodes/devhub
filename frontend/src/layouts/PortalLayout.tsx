@@ -5,6 +5,7 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AreaContext } from "@/components/ui/area";
 import { UserMenu } from "@/components/UserMenu";
+import { useAuthenticatedUser } from "@/modules/auth/hooks";
 import { cn } from "@/utils/cn";
 
 interface PortalNavItem {
@@ -12,12 +13,14 @@ interface PortalNavItem {
   to: string;
   icon: LucideIcon;
   availableInPhase?: number;
+  /** Hidden for visitors (they only see the public portfolio). */
+  clientOnly?: boolean;
 }
 
 const items: PortalNavItem[] = [
   { label: "Inicio", to: "/portal", icon: House },
-  { label: "Mis aplicaciones", to: "/portal/apps", icon: AppWindow, availableInPhase: 5 },
-  { label: "Demostraciones", to: "/portal/demos", icon: CirclePlay, availableInPhase: 5 },
+  { label: "Mis aplicaciones", to: "/portal/apps", icon: AppWindow, clientOnly: true },
+  { label: "Demostraciones", to: "/portal/demos", icon: CirclePlay, clientOnly: true },
   { label: "Mi perfil", to: "/portal/profile", icon: User },
 ];
 
@@ -51,6 +54,8 @@ function PortalNavLink({ item }: { item: PortalNavItem }) {
 }
 
 export function PortalLayout() {
+  const user = useAuthenticatedUser();
+  const visible = items.filter((i) => !i.clientOnly || user.role === "CLIENT");
   return (
     <AreaContext.Provider value="portal">
       <div data-area="portal" className="min-h-dvh bg-bg">
@@ -58,7 +63,7 @@ export function PortalLayout() {
           <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 sm:px-6">
             <Logo subtitle="Portal de clientes" />
             <nav aria-label="Navegación del portal" className="hidden flex-1 justify-center gap-1 md:flex">
-              {items.map((item) => (
+              {visible.map((item) => (
                 <PortalNavLink key={item.to} item={item} />
               ))}
             </nav>
@@ -71,7 +76,7 @@ export function PortalLayout() {
             aria-label="Navegación del portal (móvil)"
             className="flex gap-1 overflow-x-auto border-t border-border px-4 py-2 md:hidden"
           >
-            {items.map((item) => (
+            {visible.map((item) => (
               <PortalNavLink key={item.to} item={item} />
             ))}
           </nav>

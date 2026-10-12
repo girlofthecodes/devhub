@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.infrastructure",
     "apps.traceability",
     "apps.deployments",
+    "apps.portal",
 ]
 
 MIDDLEWARE = [
@@ -154,6 +155,12 @@ DEVHUB_ALLOWED_PUBLIC_DOMAINS = env_list("DEVHUB_ALLOWED_PUBLIC_DOMAINS", [])
 TRACE_RETENTION_DAYS = env_int("TRACE_RETENTION_DAYS", 365)
 AUDIT_RETENTION_DAYS = env_int("AUDIT_RETENTION_DAYS", 730)
 
+# Client portal.
+PUBLIC_PORTFOLIO_ENABLED = env_bool("PUBLIC_PORTFOLIO_ENABLED", True)
+# Demo tickets: time to open the demo after clicking, and session length granted by the demo.
+DEMO_TOKEN_TTL_SECONDS = env_int("DEMO_TOKEN_TTL_SECONDS", 300)
+DEMO_SESSION_MINUTES = env_int("DEMO_SESSION_MINUTES", 120)
+
 # --- Cache (used by throttling) ----------------------------------------------
 CACHES = {
     "default": {
@@ -189,6 +196,7 @@ REST_FRAMEWORK = {
         "login": env("THROTTLE_LOGIN", "10/min"),
         "password_reset": env("THROTTLE_PASSWORD_RESET", "5/hour"),
         "integrations": env("THROTTLE_INTEGRATIONS", "120/min"),
+        "demo_access": env("THROTTLE_DEMO_ACCESS", "30/hour"),
     },
     "NUM_PROXIES": env_int("DJANGO_NUM_PROXIES", 0),
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -214,6 +222,13 @@ SPECTACULAR_SETTINGS = {
         "DeploymentStatusEnum": "apps.deployments.models.DeploymentStatus",
         "DeploymentInitialStatusEnum": "apps.deployments.serializers.INITIAL_STATUSES",
         "DeploymentTransitionStatusEnum": "apps.deployments.serializers.TRANSITION_STATUSES",
+        "ReleaseStatusEnum": "apps.projects.models.ReleaseStatus",
+        "AvailabilityStatusEnum": [
+            ("HEALTHY", "HEALTHY"),
+            ("DEGRADED", "DEGRADED"),
+            ("UNAVAILABLE", "UNAVAILABLE"),
+            ("UNKNOWN", "UNKNOWN"),
+        ],
     },
 }
 

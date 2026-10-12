@@ -1,10 +1,11 @@
 from rest_framework.routers import SimpleRouter
 
-from .views import ProjectAccessViewSet, ProjectMemberViewSet, ProjectViewSet
+from .views import ProjectAccessViewSet, ProjectMemberViewSet, ProjectViewSet, ReleaseViewSet
 
 router = SimpleRouter()
 router.register("projects", ProjectViewSet, basename="project")
 router.register("project-members", ProjectMemberViewSet, basename="project-member")
 router.register("project-access", ProjectAccessViewSet, basename="project-access")
+router.register("releases", ReleaseViewSet, basename="release")
 
 urlpatterns = router.urls

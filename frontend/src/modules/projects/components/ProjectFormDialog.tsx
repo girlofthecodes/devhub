@@ -29,6 +29,7 @@ const FIELDS = [
   "owner",
   "status",
   "description",
+  "client_description",
   "repository_url",
   "documentation_url",
   "site_url",
@@ -65,6 +66,7 @@ function ProjectForm({ onClose, project, onCreated }: Props) {
       owner: project?.owner.id ?? (isAdmin ? me.id : ""),
       status: project && project.status !== "ARCHIVED" ? project.status : "PLANNING",
       description: project?.description ?? "",
+      client_description: project?.client_description ?? "",
       repository_url: project?.repository_url ?? "",
       documentation_url: project?.documentation_url ?? "",
       site_url: project?.site_url ?? "",
@@ -165,8 +167,15 @@ function ProjectForm({ onClose, project, onCreated }: Props) {
             )
           }
         </Field>
-        <Field label="Descripción" error={errors.description?.message}>
-          {({ id, invalid }) => <Textarea id={id} invalid={invalid} rows={3} {...register("description")} />}
+        <Field label="Descripción interna" error={errors.description?.message} hint="Solo para el equipo.">
+          {({ id, invalid, describedBy }) => <Textarea id={id} invalid={invalid} aria-describedby={describedBy} rows={3} {...register("description")} />}
+        </Field>
+        <Field
+          label="Descripción para clientes"
+          error={errors.client_description?.message}
+          hint="Información funcional visible en el portal y en el portafolio. No incluyas datos técnicos internos."
+        >
+          {({ id, invalid, describedBy }) => <Textarea id={id} invalid={invalid} aria-describedby={describedBy} rows={3} {...register("client_description")} />}
         </Field>
         <Field
           label="URL del sitio"

@@ -6,7 +6,7 @@ independientes de un equipo de software, desplegada en un Home Lab distribuido. 
 - **DevHub Admin** (`/admin`): panel privado para administradores y desarrolladores.
 - **DevHub Client Portal** (`/portal`): portal independiente para clientes.
 
-> Estado: **Fases 1 a 4 completadas y verificadas** (base, proyectos, infraestructura, despliegues y trazabilidad). Ver [Hoja de ruta](#hoja-de-ruta).
+> Estado: **Fases 1 a 5 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad y portal de clientes). Ver [Hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -83,7 +83,8 @@ devhub/
 │   │   ├── projects/        proyectos, desarrolladores asignados, acceso por organización
 │   │   ├── infrastructure/  inventario de servidores y entornos por proyecto
 │   │   ├── deployments/     despliegues, tokens de servicio, integración CI/CD
-│   │   └── traceability/    eventos inmutables, línea de tiempo, retención
+│   │   ├── traceability/    eventos inmutables, línea de tiempo, retención
+│   │   └── portal/          API del portal de clientes, tickets de demo, portafolio público
 │   ├── common/              errores, permisos, paginación, saneamiento, request-id
 │   ├── tests/               pytest
 │   └── docker/entrypoint.sh
@@ -98,11 +99,12 @@ devhub/
 │       └── hooks/ types/ utils/ styles/
 ├── infrastructure/          (Fase 6) compose Home Lab, proxy, VPN, Cloudflare, monitoreo
 ├── scripts/                 devhub-deploy-report.sh (CI → DevHub); (Fase 6) deploy, backup, restore
+├── examples/demo-guard/     middleware de referencia para proteger demos con DevHub
 ├── docs/                    arquitectura y decisiones
 └── compose.yaml             entorno de desarrollo local
 ```
 
-Los módulos `monitoring` y `portal`
+El módulo `monitoring`
 se crean en su fase correspondiente (no se generan apps vacías).
 
 ## Documentación
@@ -112,6 +114,7 @@ se crean en su fase correspondiente (no se generan apps vacías).
 - [Fase 2 — proyectos: reglas, permisos, API y verificación](docs/phase-2.md)
 - [Fase 3 — infraestructura: servidores, entornos e inventario](docs/phase-3.md)
 - [Fase 4 — despliegues, trazabilidad e integración con GitHub Actions](docs/phase-4.md)
+- [Fase 5 — portal de clientes, versiones compartidas y acceso seguro a demos](docs/phase-5.md)
 
 ## Hoja de ruta
 
@@ -121,5 +124,5 @@ se crean en su fase correspondiente (no se generan apps vacías).
 | 2 | Proyectos, desarrolladores asignados, acceso por organización | ✅ Completada |
 | 3 | Servidores, entornos, inventario | ✅ Completada |
 | 4 | Despliegues, trazabilidad, integración GitHub Actions | ✅ Completada |
-| 5 | Portal de clientes: apps autorizadas, demos protegidas, versiones | Pendiente |
+| 5 | Portal de clientes: apps autorizadas, demos protegidas, versiones | ✅ Completada |
 | 6 | Monitoreo, Docker Home Lab, VPN, Cloudflare Tunnel, scripts, backups, CI/CD | Pendiente |

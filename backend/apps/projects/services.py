@@ -22,12 +22,15 @@ from .models import (
     ProjectMemberRole,
     ProjectStatus,
     ProjectVisibility,
+    Release,
+    ReleaseStatus,
 )
 
 STAFF_ROLES = {Role.ADMIN, Role.DEVELOPER}
 # Fields a maintainer (non-admin) may change.
 TECHNICAL_FIELDS = (
     "description",
+    "client_description",
     "repository_url",
     "documentation_url",
     "site_url",
@@ -487,3 +490,125 @@ def revoke_access(grant: ProjectAccess, *, actor: User, request=None) -> Project
         request=request,
     )
     return grant
+
+
+# --- releases (versions shared with clients) ---------------------------------------------
+
+
+def _ensure_unique_release(project: Project, version: str, *, exclude_pk=None) -> None:
+    qs = Release.objects.filter(project=project, version=version)
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+    if qs.exists():
+        raise DomainError(
+            "Ya existe una versión con ese número en el proyecto.",
+            code="duplicate",
+            field="version",
+        )
+
+
+def _ensure_deployment_of_project(deployment, project: Project) -> None:
+    if deployment is not None and deployment.environment.project_id != project.pk:
+        raise DomainError(
+            "El despliegue no pertenece a este proyecto.", code="invalid", field="deployment"
+        )
+
+
+@transaction.atomic
+def create_release(*, project: Project, actor: User, request=None, **data) -> Release:
+    _ensure_not_archived(project)
+    _ensure_unique_release(project, data["version"])
+    _ensure_deployment_of_project(data.get("deployment"), project)
+    release = Release.objects.create(project=project, created_by=actor, **data)
+    audit.record(
+        AuditAction.RELEASE_CREATED,
+        actor=actor,
+        target=project,
+        changes={"version": release.version, "title": release.title},
+        request=request,
+    )
+    return release
+
+
+@transaction.atomic
+def update_release(release: Release, *, actor: User, data: dict, request=None) -> Release:
+    _ensure_not_archived(release.project)
+    if release.status == ReleaseStatus.WITHDRAWN:
+        raise DomainError("La versión fue retirada; no se puede editar.", code="withdrawn")
+    if "version" in data:
+        _ensure_unique_release(release.project, data["version"], exclude_pk=release.pk)
+    if "deployment" in data:
+        _ensure_deployment_of_project(data["deployment"], release.project)
+    changes = {
+        k: {"from": str(getattr(release, k)), "to": str(v)}
+        for k, v in data.items()
+        if getattr(release, k) != v
+    }
+    if not changes:
+        return release
+    for field, value in data.items():
+        setattr(release, field, value)
+    release.save()
+    audit.record(
+        AuditAction.RELEASE_UPDATED,
+        actor=actor,
+        target=release.project,
+        changes={"version": release.version, **changes},
+        request=request,
+    )
+    return release
+
+
+@transaction.atomic
+def publish_release(release: Release, *, actor: User, request=None) -> Release:
+    _ensure_not_archived(release.project)
+    if release.status == ReleaseStatus.PUBLISHED:
+        return release
+    if not release.notes.strip():
+        raise DomainError(
+            "Agrega notas de versión antes de publicarla para clientes.",
+            code="notes_required",
+            field="notes",
+        )
+    release.status = ReleaseStatus.PUBLISHED
+    release.published_at = timezone.now()
+    release.save(update_fields=["status", "published_at", "updated_at"])
+    _trace(
+        EventType.PROJECT_UPDATED,
+        release.project,
+        f"Versión {release.version} publicada para clientes",
+        actor=actor,
+        metadata={"release": release.version},
+    )
+    audit.record(
+        AuditAction.RELEASE_PUBLISHED,
+        actor=actor,
+        target=release.project,
+        changes={"version": release.version},
+        request=request,
+    )
+    return release
+
+
+@transaction.atomic
+def withdraw_release(release: Release, *, actor: User, request=None) -> Release:
+    if release.status == ReleaseStatus.WITHDRAWN:
+        return release
+    release.status = ReleaseStatus.WITHDRAWN
+    release.save(update_fields=["status", "updated_at"])
+    _trace(
+        EventType.PROJECT_UPDATED,
+        release.project,
+        f"Versión {release.version} retirada del portal",
+        actor=actor,
+        severity=Severity.WARNING,
+        metadata={"release": release.version},
+    )
+    audit.record(
+        AuditAction.RELEASE_WITHDRAWN,
+        actor=actor,
+        target=release.project,
+        changes={"version": release.version},
+        request=request,
+    )
+    return release

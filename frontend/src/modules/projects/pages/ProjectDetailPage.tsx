@@ -33,6 +33,7 @@ import { AccessGrantsCard } from "../components/AccessGrantsCard";
 import { ProjectFormDialog } from "../components/ProjectFormDialog";
 import { ProjectLogo } from "../components/ProjectLogo";
 import { ProjectMembersCard } from "../components/ProjectMembersCard";
+import { ReleasesCard } from "../components/ReleasesCard";
 import { statusTone } from "../constants";
 import { useArchiveProject, useProject, useProjectLogo, useSetVisibility } from "../hooks";
 
@@ -235,16 +236,26 @@ export function ProjectDetailPage() {
         <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader title="Descripción" />
-            <CardBody>
-              <p className="whitespace-pre-line text-sm text-fg">
-                {p.description || <span className="italic text-muted">Sin descripción.</span>}
-              </p>
+            <CardBody className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Interna</p>
+                <p className="whitespace-pre-line text-sm text-fg">
+                  {p.description || <span className="italic text-muted">Sin descripción.</span>}
+                </p>
+              </div>
+              <div>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Para clientes</p>
+                <p className="whitespace-pre-line text-sm text-fg">
+                  {p.client_description || <span className="italic text-muted">Sin descripción para el portal.</span>}
+                </p>
+              </div>
             </CardBody>
           </Card>
           <ProjectEnvironmentsCard
             project={{ id: p.id, name: p.name, is_archived: p.is_archived }}
             canEdit={canEdit}
           />
+          <ReleasesCard project={{ id: p.id, is_archived: p.is_archived }} canEdit={canEdit} />
           <ProjectMembersCard project={p} />
           {canManage && (
             <AccessGrantsCard scope={{ project: { id: p.id, name: p.name, is_archived: p.is_archived } }} />

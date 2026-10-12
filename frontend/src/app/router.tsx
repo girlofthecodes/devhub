@@ -19,6 +19,7 @@ import { InfrastructurePage } from "@/modules/infrastructure/pages/Infrastructur
 import { ServerDetailPage } from "@/modules/infrastructure/pages/ServerDetailPage";
 import { OrganizationDetailPage } from "@/modules/organizations/pages/OrganizationDetailPage";
 import { OrganizationsPage } from "@/modules/organizations/pages/OrganizationsPage";
+import { DemoLaunchPage, PortalAppDetailPage, PortalAppsPage, PortalDemosPage } from "@/modules/portal/pages";
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
 import { ProjectDetailPage } from "@/modules/projects/pages/ProjectDetailPage";
 import { ProjectsPage } from "@/modules/projects/pages/ProjectsPage";
@@ -36,6 +37,12 @@ function RootRedirect() {
 
 const adminOnly = (element: React.ReactNode) => (
   <ProtectedRoute roles={["ADMIN"]} loginPath="/login">
+    {element}
+  </ProtectedRoute>
+);
+
+const clientOnly = (element: React.ReactNode) => (
+  <ProtectedRoute roles={["CLIENT"]} loginPath="/portal/login">
     {element}
   </ProtectedRoute>
 );
@@ -110,6 +117,10 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <PortalHomePage /> },
+      { path: "apps", element: clientOnly(<PortalAppsPage />) },
+      { path: "apps/:id", element: clientOnly(<PortalAppDetailPage />) },
+      { path: "apps/:id/demo", element: clientOnly(<DemoLaunchPage />) },
+      { path: "demos", element: clientOnly(<PortalDemosPage />) },
       { path: "profile", element: <ProfilePage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

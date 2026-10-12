@@ -4,11 +4,20 @@ from django.core.validators import URLValidator
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.deployments.models import Deployment
 from apps.users.models import User
 from common.validators import validate_public_https_url
 
 from . import selectors
-from .models import Project, ProjectAccess, ProjectMember, ProjectStatus, ProjectVisibility
+from .models import (
+    Project,
+    ProjectAccess,
+    ProjectMember,
+    ProjectStatus,
+    ProjectVisibility,
+    Release,
+    ReleaseStatus,
+)
 
 https_only = URLValidator(schemes=["https"], message="Debe ser una URL https:// válida.")
 _TECH_RE = re.compile(r"^[\w .#+\-/]+$", re.UNICODE)
@@ -47,6 +56,7 @@ class ProjectSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "description",
+            "client_description",
             "logo_url",
             "repository_url",
             "documentation_url",
@@ -82,6 +92,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 class ProjectWriteSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
     description = serializers.CharField(allow_blank=True, required=False, max_length=5000)
+    client_description = serializers.CharField(allow_blank=True, required=False, max_length=5000)
     repository_url = serializers.CharField(
         allow_blank=True, required=False, max_length=300, validators=[https_only]
     )
@@ -182,3 +193,73 @@ class ProjectAccessSerializer(serializers.ModelSerializer):
 class ProjectAccessUpdateSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(allow_null=True, required=False)
     notes = serializers.CharField(max_length=255, allow_blank=True, required=False)
+
+
+_RELEASE_VERSION = re.compile(r"^[\w.+\-]{1,50}$")
+
+
+class ReleaseSerializer(serializers.ModelSerializer):
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+    project_name = serializers.CharField(source="project.name", read_only=True)
+    deployment_label = serializers.SerializerMethodField()
+    created_by_email = serializers.EmailField(source="created_by.email", read_only=True, default="")
+    can_edit = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Release
+        fields = [
+            "id",
+            "project",
+            "project_name",
+            "version",
+            "title",
+            "notes",
+            "status",
+            "status_label",
+            "published_at",
+            "deployment",
+            "deployment_label",
+            "created_by_email",
+            "can_edit",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_deployment_label(self, obj: Release) -> str | None:
+        d = obj.deployment
+        if d is None:
+            return None
+        return f"{d.version} · {d.environment.get_kind_display()} · {d.get_status_display()}"
+
+    def get_can_edit(self, obj: Release) -> bool:
+        request = self.context.get("request")
+        if request is None:
+            return False
+        return (
+            obj.status != ReleaseStatus.WITHDRAWN
+            and not obj.project.is_archived
+            and selectors.can_edit_project(request.user, obj.project)
+        )
+
+
+class ReleaseWriteSerializer(serializers.Serializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+    version = serializers.CharField(max_length=50)
+    title = serializers.CharField(max_length=120, allow_blank=True, required=False)
+    notes = serializers.CharField(max_length=10000, allow_blank=True, required=False)
+    deployment = serializers.PrimaryKeyRelatedField(
+        queryset=Deployment.objects.all(), allow_null=True, required=False
+    )
+
+    def validate_version(self, value: str) -> str:
+        value = value.strip()
+        if not _RELEASE_VERSION.match(value):
+            raise serializers.ValidationError("Usa letras, números y . _ - + (p. ej. v1.4.0).")
+        return value
+
+
+class ReleaseUpdateSerializer(ReleaseWriteSerializer):
+    """Project is immutable after creation."""
+
+    project = None

@@ -25,6 +25,7 @@ export interface Project {
   name: string;
   slug: string;
   description: string;
+  client_description: string;
   logo_url: string | null;
   repository_url: string;
   documentation_url: string;
@@ -57,6 +58,7 @@ export interface ProjectPayload {
   owner: string;
   status: Exclude<ProjectStatus, "ARCHIVED">;
   description: string;
+  client_description: string;
   repository_url: string;
   documentation_url: string;
   site_url: string;

@@ -12,7 +12,14 @@ from apps.users.roles import Role
 from common.permissions import IsAdmin, IsStaffMember
 
 from . import selectors, services
-from .models import Project, ProjectAccess, ProjectMember, ProjectStatus, ProjectVisibility
+from .models import (
+    Project,
+    ProjectAccess,
+    ProjectMember,
+    ProjectStatus,
+    ProjectVisibility,
+    Release,
+)
 from .serializers import (
     LogoUploadSerializer,
     ProjectAccessSerializer,
@@ -21,6 +28,9 @@ from .serializers import (
     ProjectMemberUpdateSerializer,
     ProjectSerializer,
     ProjectWriteSerializer,
+    ReleaseSerializer,
+    ReleaseUpdateSerializer,
+    ReleaseWriteSerializer,
     VisibilitySerializer,
 )
 
@@ -295,3 +305,81 @@ class ProjectAccessViewSet(
     def revoke(self, request, pk=None):
         grant = services.revoke_access(self.get_object(), actor=request.user, request=request)
         return Response(ProjectAccessSerializer(grant).data)
+
+
+class ReleaseViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Versions shared with clients. Staff read (scoped); editors of the project manage them.
+
+    Releases are withdrawn, never deleted.
+    """
+
+    serializer_class = ReleaseSerializer
+    permission_classes = [IsStaffMember]
+    filterset_fields = ["project", "status"]
+    search_fields = ["version", "title", "notes"]
+    ordering_fields = ["published_at", "created_at", "version"]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Release.objects.none()
+        visible = selectors.projects_visible_to(self.request.user)
+        return Release.objects.filter(project__in=visible).select_related(
+            "project", "deployment__environment", "created_by"
+        )
+
+    def _require_edit(self, project) -> None:
+        if not selectors.can_edit_project(self.request.user, project):
+            raise PermissionDenied(
+                "No tienes permiso para gestionar las versiones de este proyecto."
+            )
+
+    def _respond(self, release: Release, code=status.HTTP_200_OK) -> Response:
+        fresh = self.get_queryset().get(pk=release.pk)
+        return Response(self.get_serializer(fresh).data, status=code)
+
+    @extend_schema(request=ReleaseWriteSerializer, responses={201: ReleaseSerializer})
+    def create(self, request, *args, **kwargs):
+        serializer = ReleaseWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        project = data.pop("project")
+        if not selectors.projects_visible_to(request.user).filter(pk=project.pk).exists():
+            raise serializers.ValidationError({"project": ["Proyecto no válido."]})
+        self._require_edit(project)
+        release = services.create_release(
+            project=project, actor=request.user, request=request, **data
+        )
+        return self._respond(release, status.HTTP_201_CREATED)
+
+    @extend_schema(request=ReleaseUpdateSerializer, responses=ReleaseSerializer)
+    def update(self, request, *args, **kwargs):
+        release = self.get_object()
+        self._require_edit(release.project)
+        serializer = ReleaseUpdateSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        services.update_release(
+            release, actor=request.user, data=dict(serializer.validated_data), request=request
+        )
+        return self._respond(release)
+
+    @extend_schema(request=None, responses=ReleaseSerializer)
+    @action(detail=True, methods=["post"])
+    def publish(self, request, pk=None):
+        release = self.get_object()
+        self._require_edit(release.project)
+        return self._respond(services.publish_release(release, actor=request.user, request=request))
+
+    @extend_schema(request=None, responses=ReleaseSerializer)
+    @action(detail=True, methods=["post"])
+    def withdraw(self, request, pk=None):
+        release = self.get_object()
+        self._require_edit(release.project)
+        return self._respond(
+            services.withdraw_release(release, actor=request.user, request=request)
+        )
