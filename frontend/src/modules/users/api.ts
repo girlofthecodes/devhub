@@ -17,6 +17,8 @@ export interface User {
 
 export interface UserListParams extends ListParams {
   role?: Role;
+  /** Comma-separated roles, e.g. "ADMIN,DEVELOPER". */
+  roles?: string;
   is_active?: boolean;
   organization?: string;
 }

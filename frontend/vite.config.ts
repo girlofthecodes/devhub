@@ -20,6 +20,7 @@ export default defineConfig({
     // Same-origin API: session + CSRF cookies work without CORS.
     proxy: {
       "/api": { target: proxyTarget, changeOrigin: false, xfwd: true },
+      "/media": { target: proxyTarget, changeOrigin: false },
     },
   },
 });

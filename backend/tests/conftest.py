@@ -66,3 +66,20 @@ def make_org(db):
         return org
 
     return _make
+
+
+@pytest.fixture
+def make_project(db, admin_user):
+    from apps.projects.models import Project
+
+    def _make(name: str | None = None, *, owner: User | None = None, **extra) -> Project:
+        name = name or f"Proyecto {next(_seq)}"
+        slug = extra.pop("slug", name.lower().replace(" ", "-"))
+        return Project.objects.create(name=name, slug=slug, owner=owner or admin_user, **extra)
+
+    return _make
+
+
+@pytest.fixture(autouse=True)
+def _media_root(settings, tmp_path):
+    settings.MEDIA_ROOT = str(tmp_path / "media")

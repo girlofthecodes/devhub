@@ -32,7 +32,7 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
     section: "General",
     items: [
       { label: "Dashboard", to: "/admin", icon: LayoutDashboard, roles: STAFF },
-      { label: "Proyectos", to: "/admin/projects", icon: FolderKanban, roles: STAFF, availableInPhase: 2 },
+      { label: "Proyectos", to: "/admin/projects", icon: FolderKanban, roles: STAFF },
       { label: "Organizaciones", to: "/admin/organizations", icon: Building2, roles: STAFF },
       { label: "Usuarios", to: "/admin/users", icon: Users, roles: ADMIN },
     ],

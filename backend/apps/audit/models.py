@@ -24,6 +24,19 @@ class AuditAction(models.TextChoices):
     MEMBERSHIP_ADDED = "MEMBERSHIP_ADDED", "Miembro agregado"
     MEMBERSHIP_UPDATED = "MEMBERSHIP_UPDATED", "Membresía actualizada"
     MEMBERSHIP_REMOVED = "MEMBERSHIP_REMOVED", "Miembro removido"
+    PROJECT_CREATED = "PROJECT_CREATED", "Proyecto creado"
+    PROJECT_UPDATED = "PROJECT_UPDATED", "Proyecto actualizado"
+    PROJECT_ARCHIVED = "PROJECT_ARCHIVED", "Proyecto archivado"
+    PROJECT_RESTORED = "PROJECT_RESTORED", "Proyecto restaurado"
+    PROJECT_PUBLISHED = "PROJECT_PUBLISHED", "Proyecto publicado en portafolio"
+    PROJECT_UNPUBLISHED = "PROJECT_UNPUBLISHED", "Proyecto oculto del portafolio"
+    PROJECT_LOGO_UPDATED = "PROJECT_LOGO_UPDATED", "Logotipo actualizado"
+    PROJECT_MEMBER_ADDED = "PROJECT_MEMBER_ADDED", "Desarrollador asignado"
+    PROJECT_MEMBER_UPDATED = "PROJECT_MEMBER_UPDATED", "Asignación actualizada"
+    PROJECT_MEMBER_REMOVED = "PROJECT_MEMBER_REMOVED", "Desarrollador removido"
+    ACCESS_GRANTED = "ACCESS_GRANTED", "Acceso concedido"
+    ACCESS_UPDATED = "ACCESS_UPDATED", "Acceso actualizado"
+    ACCESS_REVOKED = "ACCESS_REVOKED", "Acceso revocado"
 
 
 class ImmutableRecordError(Exception):

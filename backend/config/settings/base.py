@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     # Third party
     "rest_framework",
     "django_filters",
@@ -27,6 +28,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.organizations",
     "apps.audit",
+    "apps.projects",
 ]
 
 MIDDLEWARE = [
@@ -120,6 +122,11 @@ USE_TZ = True
 # --- Static -------------------------------------------------------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = env("DJANGO_MEDIA_ROOT", str(BASE_DIR / "media"))
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
@@ -187,6 +194,8 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "UserRoleEnum": "apps.users.roles.Role",
         "MembershipRoleEnum": "apps.organizations.models.MembershipRole",
+        "ProjectStatusEnum": "apps.projects.models.ProjectStatus",
+        "ProjectMemberRoleEnum": "apps.projects.models.ProjectMemberRole",
     },
 }
 

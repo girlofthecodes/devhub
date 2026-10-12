@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 import { DataTable, type Column } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { useAuthenticatedUser } from "@/modules/auth/hooks";
+import { AccessGrantsCard } from "@/modules/projects/components/AccessGrantsCard";
 import { formatDateTime } from "@/utils/format";
 import { errorMessage } from "@/utils/forms";
 
@@ -258,7 +259,10 @@ export function OrganizationDetailPage() {
           </CardBody>
         </Card>
         {isAdmin ? (
-          <MembersCard organization={o} />
+          <div className="min-w-0 space-y-6">
+            <MembersCard organization={o} />
+            <AccessGrantsCard scope={{ organization: { id: o.id, name: o.name, is_active: o.is_active } }} />
+          </div>
         ) : (
           <Card>
             <EmptyState

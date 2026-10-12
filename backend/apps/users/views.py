@@ -143,13 +143,18 @@ class RoleListView(APIView):
         return Response([{"value": r.value, "label": r.label} for r in Role])
 
 
+class CharInFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+    pass
+
+
 class UserFilter(django_filters.FilterSet):
     role = django_filters.ChoiceFilter(choices=Role.choices, field_name="groups__name")
+    roles = CharInFilter(field_name="groups__name", lookup_expr="in")
     organization = django_filters.UUIDFilter(field_name="memberships__organization")
 
     class Meta:
         model = User
-        fields = ["is_active", "role", "organization"]
+        fields = ["is_active", "role", "roles", "organization"]
 
 
 class UserViewSet(

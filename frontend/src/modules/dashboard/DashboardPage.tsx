@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Building2, HeartPulse, ScrollText, Users, type LucideIcon } from "lucide-react";
+import { Building2, FolderKanban, HeartPulse, ScrollText, Users, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 
@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, Skeleton } from "@/components/ui/Feedback";
 import { actionTone, useAuditLogs } from "@/modules/audit/api";
 import { useAuthenticatedUser } from "@/modules/auth/hooks";
 import { useOrganizations } from "@/modules/organizations/hooks";
+import { useProjects } from "@/modules/projects/hooks";
 import { useUsers } from "@/modules/users/hooks";
 import { http } from "@/services/http";
 import { formatRelative } from "@/utils/format";
@@ -87,11 +88,13 @@ function HealthCard() {
 }
 
 function AdminStats() {
+  const projects = useProjects({ archived: false, page_size: 1 });
   const activeUsers = useUsers({ is_active: true, page_size: 1 });
   const clients = useUsers({ role: "CLIENT", is_active: true, page_size: 1 });
   const orgs = useOrganizations({ is_active: true, page_size: 1 });
   return (
     <>
+      <StatCard label="Proyectos activos" icon={FolderKanban} to="/admin/projects" value={projects.data?.count} loading={projects.isPending} error={projects.isError} />
       <StatCard label="Usuarios activos" icon={Users} to="/admin/users" value={activeUsers.data?.count} loading={activeUsers.isPending} error={activeUsers.isError} />
       <StatCard label="Clientes activos" icon={Users} to="/admin/users" value={clients.data?.count} loading={clients.isPending} error={clients.isError} />
       <StatCard label="Organizaciones activas" icon={Building2} to="/admin/organizations" value={orgs.data?.count} loading={orgs.isPending} error={orgs.isError} />
@@ -146,16 +149,26 @@ export function DashboardPage() {
   const user = useAuthenticatedUser();
   const isAdmin = user.role === "ADMIN";
   const orgs = useOrganizations({ page_size: 1 });
+  const myProjects = useProjects({ archived: false, page_size: 1 }, !isAdmin);
   return (
     <>
       <PageHeader
         title={`Hola, ${user.first_name || user.full_name}`}
         description="Resumen del estado de DevHub."
       />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {isAdmin ? (
           <AdminStats />
         ) : (
+          <>
+          <StatCard
+            label="Mis proyectos"
+            icon={FolderKanban}
+            to="/admin/projects"
+            value={myProjects.data?.count}
+            loading={myProjects.isPending}
+            error={myProjects.isError}
+          />
           <StatCard
             label="Mis organizaciones"
             icon={Building2}
@@ -164,6 +177,7 @@ export function DashboardPage() {
             loading={orgs.isPending}
             error={orgs.isError}
           />
+          </>
         )}
         <HealthCard />
       </div>

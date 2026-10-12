@@ -46,6 +46,19 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   MEMBERSHIP_ADDED: "Miembro agregado",
   MEMBERSHIP_UPDATED: "Membresía actualizada",
   MEMBERSHIP_REMOVED: "Miembro removido",
+  PROJECT_CREATED: "Proyecto creado",
+  PROJECT_UPDATED: "Proyecto actualizado",
+  PROJECT_ARCHIVED: "Proyecto archivado",
+  PROJECT_RESTORED: "Proyecto restaurado",
+  PROJECT_PUBLISHED: "Proyecto publicado en portafolio",
+  PROJECT_UNPUBLISHED: "Proyecto oculto del portafolio",
+  PROJECT_LOGO_UPDATED: "Logotipo actualizado",
+  PROJECT_MEMBER_ADDED: "Desarrollador asignado",
+  PROJECT_MEMBER_UPDATED: "Asignación actualizada",
+  PROJECT_MEMBER_REMOVED: "Desarrollador removido",
+  ACCESS_GRANTED: "Acceso concedido",
+  ACCESS_UPDATED: "Acceso actualizado",
+  ACCESS_REVOKED: "Acceso revocado",
 };
 
 export const auditApi = {
@@ -65,8 +78,9 @@ export function useAuditLogs(params: AuditListParams, enabled = true) {
 }
 
 export function actionTone(action: string): BadgeTone {
-  if (action.includes("FAILED") || action.includes("DEACTIVATED") || action.includes("REMOVED")) return "danger";
-  if (action.includes("CREATED") || action.includes("ADDED") || action.includes("ACTIVATED")) return "success";
+  if (["FAILED", "DEACTIVATED", "REMOVED", "REVOKED", "ARCHIVED"].some((k) => action.includes(k))) return "danger";
+  if (["CREATED", "ADDED", "ACTIVATED", "GRANTED", "RESTORED", "PUBLISHED"].some((k) => action.includes(k)) && !action.includes("UNPUBLISHED"))
+    return "success";
   if (action.startsWith("LOGIN") || action === "LOGOUT") return "neutral";
   return "info";
 }

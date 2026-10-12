@@ -39,7 +39,7 @@ flowchart LR
 | D10 | **Caché de base de datos** para el rate limiting en producción | Comparte contadores entre los workers de gunicorn sin añadir Redis al MVP. |
 | D11 | **Usuarios y organizaciones no se eliminan**: se desactivan | Conserva el historial y la trazabilidad. |
 
-## Modelo de datos (Fase 1)
+## Modelo de datos (Fases 1–2)
 
 ```mermaid
 erDiagram
@@ -48,6 +48,11 @@ erDiagram
   USER ||--o{ MEMBERSHIP : ""
   ORGANIZATION ||--o{ MEMBERSHIP : ""
   USER ||--o{ AUDIT_LOG : "actor (nullable)"
+  USER ||--o{ PROJECT : "responsable"
+  PROJECT ||--o{ PROJECT_MEMBER : ""
+  USER ||--o{ PROJECT_MEMBER : ""
+  PROJECT ||--o{ PROJECT_ACCESS : ""
+  ORGANIZATION ||--o{ PROJECT_ACCESS : ""
 
   USER {
     uuid id PK
@@ -78,6 +83,36 @@ erDiagram
     uuid user FK
     enum role "OWNER | MEMBER"
   }
+  PROJECT {
+    uuid id PK
+    string name "único sin distinguir mayúsculas"
+    slug slug UK
+    text description
+    image logo
+    url repository_url "https"
+    url documentation_url "https"
+    url site_url "https, sitio desplegado"
+    array technologies
+    uuid owner FK
+    enum status "PLANNING..ARCHIVED"
+    enum visibility "INTERNAL | PUBLIC"
+    datetime archived_at
+  }
+  PROJECT_MEMBER {
+    uuid id PK
+    uuid project FK
+    uuid user FK
+    enum role "MAINTAINER | CONTRIBUTOR"
+  }
+  PROJECT_ACCESS {
+    uuid id PK
+    uuid project FK
+    uuid organization FK
+    datetime expires_at
+    datetime revoked_at "NULL = abierto"
+    uuid granted_by FK
+    uuid revoked_by FK
+  }
   AUDIT_LOG {
     uuid id PK
     datetime created_at
@@ -92,7 +127,7 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fase 1)
+## Roles y permisos (Fases 1–2)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
@@ -103,6 +138,9 @@ erDiagram
 | Organizaciones: consultar | todas | solo propias activas | solo propias activas | solo propias activas | ❌ |
 | Membresías: gestionar | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Auditoría: consultar | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Proyectos: ver | todos | propios o asignados | ❌ | ❌ | ❌ |
+| Proyectos: crear, archivar, publicar, responsable, miembros, accesos | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Proyectos: editar datos técnicos y logotipo | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
 | Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
 | Portal `/portal` (UI) | → panel | → panel | ✅ | ✅ | → login |
 
@@ -126,6 +164,8 @@ erDiagram
 3. Un usuario no puede pertenecer dos veces a la misma organización.
 4. Solo se pueden agregar usuarios activos. Los `VISITOR` no pueden ser miembros.
 5. Los usuarios que no son administradores solo ven las organizaciones **activas** a las que pertenecen. Cualquier otro ID devuelve 404.
+
+**Proyectos** — ver las reglas completas en [phase-2.md](phase-2.md#reglas-de-negocio).
 
 **Auditoría**
 1. Se registran el inicio y cierre de sesión, los fallos de login, los cambios y la recuperación de contraseña, todas las operaciones administrativas sobre usuarios, organizaciones y membresías, y la revocación de sesiones.

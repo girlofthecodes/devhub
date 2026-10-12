@@ -15,6 +15,8 @@ import { DashboardPage } from "@/modules/dashboard/DashboardPage";
 import { OrganizationDetailPage } from "@/modules/organizations/pages/OrganizationDetailPage";
 import { OrganizationsPage } from "@/modules/organizations/pages/OrganizationsPage";
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
+import { ProjectDetailPage } from "@/modules/projects/pages/ProjectDetailPage";
+import { ProjectsPage } from "@/modules/projects/pages/ProjectsPage";
 import { UsersPage } from "@/modules/users/pages/UsersPage";
 
 import { NotFoundPage } from "./NotFoundPage";
@@ -47,6 +49,14 @@ export const routes: RouteObject[] = [
     handle: { crumb: "Inicio" },
     children: [
       { index: true, element: <DashboardPage />, handle: { crumb: "Dashboard" } },
+      {
+        path: "projects",
+        handle: { crumb: "Proyectos" },
+        children: [
+          { index: true, element: <ProjectsPage /> },
+          { path: ":id", element: <ProjectDetailPage />, handle: { crumb: "Detalle" } },
+        ],
+      },
       {
         path: "organizations",
         handle: { crumb: "Organizaciones" },
