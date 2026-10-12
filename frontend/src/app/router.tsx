@@ -12,6 +12,9 @@ import { ResetPasswordPage } from "@/modules/auth/pages/ResetPasswordPage";
 import { ProtectedRoute } from "@/modules/auth/ProtectedRoute";
 import { homePathFor, PORTAL_ROLES, STAFF_ROLES } from "@/modules/auth/types";
 import { DashboardPage } from "@/modules/dashboard/DashboardPage";
+import { EnvironmentsPage } from "@/modules/infrastructure/pages/EnvironmentsPage";
+import { InfrastructurePage } from "@/modules/infrastructure/pages/InfrastructurePage";
+import { ServerDetailPage } from "@/modules/infrastructure/pages/ServerDetailPage";
 import { OrganizationDetailPage } from "@/modules/organizations/pages/OrganizationDetailPage";
 import { OrganizationsPage } from "@/modules/organizations/pages/OrganizationsPage";
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
@@ -57,6 +60,15 @@ export const routes: RouteObject[] = [
           { path: ":id", element: <ProjectDetailPage />, handle: { crumb: "Detalle" } },
         ],
       },
+      {
+        path: "infrastructure",
+        handle: { crumb: "Infraestructura" },
+        children: [
+          { index: true, element: <InfrastructurePage /> },
+          { path: "servers/:id", element: <ServerDetailPage />, handle: { crumb: "Servidor" } },
+        ],
+      },
+      { path: "environments", element: <EnvironmentsPage />, handle: { crumb: "Entornos" } },
       {
         path: "organizations",
         handle: { crumb: "Organizaciones" },

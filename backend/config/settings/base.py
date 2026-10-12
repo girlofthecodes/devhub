@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "apps.organizations",
     "apps.audit",
     "apps.projects",
+    "apps.infrastructure",
 ]
 
 MIDDLEWARE = [
@@ -144,6 +145,9 @@ EMAIL_TIMEOUT = 10
 
 FRONTEND_URL = env("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 
+# Domains allowed for public URLs (environments, project sites). Empty = any public domain.
+DEVHUB_ALLOWED_PUBLIC_DOMAINS = env_list("DEVHUB_ALLOWED_PUBLIC_DOMAINS", [])
+
 # --- Cache (used by throttling) ----------------------------------------------
 CACHES = {
     "default": {
@@ -196,6 +200,10 @@ SPECTACULAR_SETTINGS = {
         "MembershipRoleEnum": "apps.organizations.models.MembershipRole",
         "ProjectStatusEnum": "apps.projects.models.ProjectStatus",
         "ProjectMemberRoleEnum": "apps.projects.models.ProjectMemberRole",
+        # Server and environment statuses share the same choice set.
+        "InfraStatusEnum": "apps.infrastructure.models.ServerStatus",
+        "ServerTypeEnum": "apps.infrastructure.models.ServerType",
+        "EnvironmentKindEnum": "apps.infrastructure.models.EnvironmentKind",
     },
 }
 

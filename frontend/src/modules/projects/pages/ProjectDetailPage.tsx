@@ -23,6 +23,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Alert, ErrorState, Skeleton } from "@/components/ui/Feedback";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { ProjectEnvironmentsCard } from "@/modules/infrastructure/components/ProjectEnvironmentsCard";
 import { ApiError } from "@/services/http";
 import { formatDateTime } from "@/utils/format";
 import { errorMessage } from "@/utils/forms";
@@ -240,6 +241,10 @@ export function ProjectDetailPage() {
               </p>
             </CardBody>
           </Card>
+          <ProjectEnvironmentsCard
+            project={{ id: p.id, name: p.name, is_archived: p.is_archived }}
+            canEdit={canEdit}
+          />
           <ProjectMembersCard project={p} />
           {canManage && (
             <AccessGrantsCard scope={{ project: { id: p.id, name: p.name, is_archived: p.is_archived } }} />
@@ -247,7 +252,7 @@ export function ProjectDetailPage() {
           <Card>
             <CardBody className="flex items-start gap-3 text-sm text-muted">
               <Info className="mt-0.5 size-4 shrink-0" />
-              Entornos, despliegues y eventos de trazabilidad de este proyecto se habilitan en las Fases 3 y 4.
+              El historial de despliegues y los eventos de trazabilidad de este proyecto se habilitan en la Fase 4.
             </CardBody>
           </Card>
         </div>

@@ -40,8 +40,8 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
   {
     section: "Operación",
     items: [
-      { label: "Infraestructura", to: "/admin/infrastructure", icon: Server, roles: STAFF, availableInPhase: 3 },
-      { label: "Entornos", to: "/admin/environments", icon: Layers, roles: STAFF, availableInPhase: 3 },
+      { label: "Infraestructura", to: "/admin/infrastructure", icon: Server, roles: STAFF },
+      { label: "Entornos", to: "/admin/environments", icon: Layers, roles: STAFF },
       { label: "Despliegues", to: "/admin/deployments", icon: Rocket, roles: STAFF, availableInPhase: 4 },
       { label: "Trazabilidad", to: "/admin/traceability", icon: GitBranch, roles: STAFF, availableInPhase: 4 },
       { label: "Monitoreo", to: "/admin/monitoring", icon: Activity, roles: STAFF, availableInPhase: 6 },

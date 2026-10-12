@@ -37,6 +37,10 @@ class AuditAction(models.TextChoices):
     ACCESS_GRANTED = "ACCESS_GRANTED", "Acceso concedido"
     ACCESS_UPDATED = "ACCESS_UPDATED", "Acceso actualizado"
     ACCESS_REVOKED = "ACCESS_REVOKED", "Acceso revocado"
+    SERVER_CREATED = "SERVER_CREATED", "Servidor registrado"
+    SERVER_UPDATED = "SERVER_UPDATED", "Servidor actualizado"
+    ENVIRONMENT_CREATED = "ENVIRONMENT_CREATED", "Entorno creado"
+    ENVIRONMENT_UPDATED = "ENVIRONMENT_UPDATED", "Entorno actualizado"
 
 
 class ImmutableRecordError(Exception):

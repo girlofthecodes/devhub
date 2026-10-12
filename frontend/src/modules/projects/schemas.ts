@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { publicUrlError } from "@/utils/urls";
+
 function isHttpsUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -24,7 +26,14 @@ export const projectSchema = z.object({
   description: z.string().trim().max(5000, "Máximo 5000 caracteres."),
   repository_url: httpsUrl,
   documentation_url: httpsUrl,
-  site_url: httpsUrl,
+  site_url: z
+    .string()
+    .trim()
+    .max(300, "Máximo 300 caracteres.")
+    .superRefine((v, ctx) => {
+      const error = publicUrlError(v);
+      if (error) ctx.addIssue({ code: "custom", message: error });
+    }),
   technologies: z
     .array(z.string().max(40, "Máximo 40 caracteres por tecnología.").regex(TECH_PATTERN))
     .max(20, "Máximo 20 tecnologías."),

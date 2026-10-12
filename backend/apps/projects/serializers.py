@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.users.models import User
+from common.validators import validate_public_https_url
 
 from . import selectors
 from .models import Project, ProjectAccess, ProjectMember, ProjectStatus, ProjectVisibility
@@ -88,7 +89,7 @@ class ProjectWriteSerializer(serializers.Serializer):
         allow_blank=True, required=False, max_length=300, validators=[https_only]
     )
     site_url = serializers.CharField(
-        allow_blank=True, required=False, max_length=300, validators=[https_only]
+        allow_blank=True, required=False, max_length=300, validators=[validate_public_https_url]
     )
     technologies = serializers.ListField(
         child=serializers.CharField(max_length=40), required=False, max_length=20

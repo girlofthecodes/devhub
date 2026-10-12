@@ -59,6 +59,10 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   ACCESS_GRANTED: "Acceso concedido",
   ACCESS_UPDATED: "Acceso actualizado",
   ACCESS_REVOKED: "Acceso revocado",
+  SERVER_CREATED: "Servidor registrado",
+  SERVER_UPDATED: "Servidor actualizado",
+  ENVIRONMENT_CREATED: "Entorno creado",
+  ENVIRONMENT_UPDATED: "Entorno actualizado",
 };
 
 export const auditApi = {

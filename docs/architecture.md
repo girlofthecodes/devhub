@@ -39,7 +39,7 @@ flowchart LR
 | D10 | **Caché de base de datos** para el rate limiting en producción | Comparte contadores entre los workers de gunicorn sin añadir Redis al MVP. |
 | D11 | **Usuarios y organizaciones no se eliminan**: se desactivan | Conserva el historial y la trazabilidad. |
 
-## Modelo de datos (Fases 1–2)
+## Modelo de datos (Fases 1–3)
 
 ```mermaid
 erDiagram
@@ -53,6 +53,8 @@ erDiagram
   USER ||--o{ PROJECT_MEMBER : ""
   PROJECT ||--o{ PROJECT_ACCESS : ""
   ORGANIZATION ||--o{ PROJECT_ACCESS : ""
+  PROJECT ||--o{ ENVIRONMENT : "uno por tipo"
+  SERVER ||--o{ ENVIRONMENT : "aloja"
 
   USER {
     uuid id PK
@@ -113,6 +115,26 @@ erDiagram
     uuid granted_by FK
     uuid revoked_by FK
   }
+  SERVER {
+    uuid id PK
+    string name
+    slug identifier UK
+    string location
+    enum server_type "APPLICATION | DATABASE | MIXED | OTHER"
+    string operating_system
+    inet vpn_address "solo privada / CGNAT"
+    enum status "ACTIVE | MAINTENANCE | INACTIVE"
+    datetime last_checked_at "monitoreo (Fase 6)"
+  }
+  ENVIRONMENT {
+    uuid id PK
+    uuid project FK
+    uuid server FK "nullable, PROTECT"
+    enum kind "DEVELOPMENT | DEMO | PRODUCTION"
+    url public_url "https, dominio público"
+    string deployed_version
+    enum status
+  }
   AUDIT_LOG {
     uuid id PK
     datetime created_at
@@ -127,7 +149,7 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fases 1–2)
+## Roles y permisos (Fases 1–3)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
@@ -141,6 +163,10 @@ erDiagram
 | Proyectos: ver | todos | propios o asignados | ❌ | ❌ | ❌ |
 | Proyectos: crear, archivar, publicar, responsable, miembros, accesos | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Proyectos: editar datos técnicos y logotipo | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Servidores: ver inventario | ✅ | ✅ (lectura) | ❌ | ❌ | ❌ |
+| Servidores: registrar o editar | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Entornos: ver | todos | de sus proyectos | ❌ | ❌ | ❌ |
+| Entornos: crear o editar | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
 | Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
 | Portal `/portal` (UI) | → panel | → panel | ✅ | ✅ | → login |
 
@@ -166,6 +192,8 @@ erDiagram
 5. Los usuarios que no son administradores solo ven las organizaciones **activas** a las que pertenecen. Cualquier otro ID devuelve 404.
 
 **Proyectos** — ver las reglas completas en [phase-2.md](phase-2.md#reglas-de-negocio).
+
+**Infraestructura**: ver las reglas completas en [phase-3.md](phase-3.md#reglas-de-negocio).
 
 **Auditoría**
 1. Se registran el inicio y cierre de sesión, los fallos de login, los cambios y la recuperación de contraseña, todas las operaciones administrativas sobre usuarios, organizaciones y membresías, y la revocación de sesiones.
