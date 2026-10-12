@@ -12,6 +12,8 @@ import { ResetPasswordPage } from "@/modules/auth/pages/ResetPasswordPage";
 import { ProtectedRoute } from "@/modules/auth/ProtectedRoute";
 import { homePathFor, PORTAL_ROLES, STAFF_ROLES } from "@/modules/auth/types";
 import { DashboardPage } from "@/modules/dashboard/DashboardPage";
+import { DeploymentDetailPage } from "@/modules/deployments/pages/DeploymentDetailPage";
+import { DeploymentsPage } from "@/modules/deployments/pages/DeploymentsPage";
 import { EnvironmentsPage } from "@/modules/infrastructure/pages/EnvironmentsPage";
 import { InfrastructurePage } from "@/modules/infrastructure/pages/InfrastructurePage";
 import { ServerDetailPage } from "@/modules/infrastructure/pages/ServerDetailPage";
@@ -20,6 +22,8 @@ import { OrganizationsPage } from "@/modules/organizations/pages/OrganizationsPa
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
 import { ProjectDetailPage } from "@/modules/projects/pages/ProjectDetailPage";
 import { ProjectsPage } from "@/modules/projects/pages/ProjectsPage";
+import { IntegrationsPage } from "@/modules/settings/IntegrationsPage";
+import { TraceabilityPage } from "@/modules/traceability/pages/TraceabilityPage";
 import { UsersPage } from "@/modules/users/pages/UsersPage";
 
 import { NotFoundPage } from "./NotFoundPage";
@@ -69,6 +73,20 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: "environments", element: <EnvironmentsPage />, handle: { crumb: "Entornos" } },
+      {
+        path: "deployments",
+        handle: { crumb: "Despliegues" },
+        children: [
+          { index: true, element: <DeploymentsPage /> },
+          { path: ":id", element: <DeploymentDetailPage />, handle: { crumb: "Detalle" } },
+        ],
+      },
+      { path: "traceability", element: <TraceabilityPage />, handle: { crumb: "Trazabilidad" } },
+      {
+        path: "settings/integrations",
+        element: adminOnly(<IntegrationsPage />),
+        handle: { crumb: "Integraciones" },
+      },
       {
         path: "organizations",
         handle: { crumb: "Organizaciones" },

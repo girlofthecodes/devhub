@@ -41,6 +41,10 @@ class AuditAction(models.TextChoices):
     SERVER_UPDATED = "SERVER_UPDATED", "Servidor actualizado"
     ENVIRONMENT_CREATED = "ENVIRONMENT_CREATED", "Entorno creado"
     ENVIRONMENT_UPDATED = "ENVIRONMENT_UPDATED", "Entorno actualizado"
+    DEPLOYMENT_CREATED = "DEPLOYMENT_CREATED", "Despliegue registrado"
+    DEPLOYMENT_STATUS_CHANGED = "DEPLOYMENT_STATUS_CHANGED", "Estado de despliegue cambiado"
+    SERVICE_TOKEN_CREATED = "SERVICE_TOKEN_CREATED", "Token de servicio creado"
+    SERVICE_TOKEN_REVOKED = "SERVICE_TOKEN_REVOKED", "Token de servicio revocado"
 
 
 class ImmutableRecordError(Exception):

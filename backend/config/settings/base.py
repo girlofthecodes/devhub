@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.projects",
     "apps.infrastructure",
+    "apps.traceability",
+    "apps.deployments",
 ]
 
 MIDDLEWARE = [
@@ -148,6 +150,10 @@ FRONTEND_URL = env("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 # Domains allowed for public URLs (environments, project sites). Empty = any public domain.
 DEVHUB_ALLOWED_PUBLIC_DOMAINS = env_list("DEVHUB_ALLOWED_PUBLIC_DOMAINS", [])
 
+# Retention policy (days) applied by `manage.py purge_history`.
+TRACE_RETENTION_DAYS = env_int("TRACE_RETENTION_DAYS", 365)
+AUDIT_RETENTION_DAYS = env_int("AUDIT_RETENTION_DAYS", 730)
+
 # --- Cache (used by throttling) ----------------------------------------------
 CACHES = {
     "default": {
@@ -182,6 +188,7 @@ REST_FRAMEWORK = {
         "user": env("THROTTLE_USER", "1200/min"),
         "login": env("THROTTLE_LOGIN", "10/min"),
         "password_reset": env("THROTTLE_PASSWORD_RESET", "5/hour"),
+        "integrations": env("THROTTLE_INTEGRATIONS", "120/min"),
     },
     "NUM_PROXIES": env_int("DJANGO_NUM_PROXIES", 0),
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
@@ -204,6 +211,9 @@ SPECTACULAR_SETTINGS = {
         "InfraStatusEnum": "apps.infrastructure.models.ServerStatus",
         "ServerTypeEnum": "apps.infrastructure.models.ServerType",
         "EnvironmentKindEnum": "apps.infrastructure.models.EnvironmentKind",
+        "DeploymentStatusEnum": "apps.deployments.models.DeploymentStatus",
+        "DeploymentInitialStatusEnum": "apps.deployments.serializers.INITIAL_STATUSES",
+        "DeploymentTransitionStatusEnum": "apps.deployments.serializers.TRANSITION_STATUSES",
     },
 }
 

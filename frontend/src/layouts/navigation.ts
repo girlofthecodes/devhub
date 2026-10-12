@@ -42,8 +42,8 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Infraestructura", to: "/admin/infrastructure", icon: Server, roles: STAFF },
       { label: "Entornos", to: "/admin/environments", icon: Layers, roles: STAFF },
-      { label: "Despliegues", to: "/admin/deployments", icon: Rocket, roles: STAFF, availableInPhase: 4 },
-      { label: "Trazabilidad", to: "/admin/traceability", icon: GitBranch, roles: STAFF, availableInPhase: 4 },
+      { label: "Despliegues", to: "/admin/deployments", icon: Rocket, roles: STAFF },
+      { label: "Trazabilidad", to: "/admin/traceability", icon: GitBranch, roles: STAFF },
       { label: "Monitoreo", to: "/admin/monitoring", icon: Activity, roles: STAFF, availableInPhase: 6 },
     ],
   },
@@ -51,7 +51,7 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
     section: "Sistema",
     items: [
       { label: "Auditoría", to: "/admin/audit", icon: ScrollText, roles: ADMIN },
-      { label: "Configuración", to: "/admin/settings", icon: Settings, roles: ADMIN, availableInPhase: 6 },
+      { label: "Integraciones", to: "/admin/settings/integrations", icon: Settings, roles: ADMIN },
     ],
   },
 ];

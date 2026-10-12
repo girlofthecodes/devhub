@@ -26,6 +26,9 @@ ROLE_MODEL_PERMISSIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "projects.projectaccess": ("add", "change", "view"),
         "infrastructure.server": ("add", "change", "view"),
         "infrastructure.environment": ("add", "change", "view"),
+        "deployments.deployment": ("add", "view"),
+        "deployments.servicetoken": ("view",),
+        "traceability.event": ("view",),
     },
     Role.DEVELOPER: {
         "organizations.organization": ("view",),
@@ -33,6 +36,8 @@ ROLE_MODEL_PERMISSIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "projects.projectmember": ("view",),
         "infrastructure.server": ("view",),
         "infrastructure.environment": ("add", "change", "view"),
+        "deployments.deployment": ("add", "view"),
+        "traceability.event": ("view",),
     },
     Role.CLIENT: {},
     Role.VISITOR: {},

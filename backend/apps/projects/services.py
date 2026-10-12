@@ -9,6 +9,8 @@ from PIL import Image, UnidentifiedImageError
 from apps.audit import services as audit
 from apps.audit.models import AuditAction
 from apps.organizations.models import Organization
+from apps.traceability import services as trace
+from apps.traceability.models import EventType, Severity
 from apps.users.models import User
 from apps.users.roles import Role
 from common.exceptions import DomainError
@@ -91,6 +93,18 @@ def _audit_value(value):
     return value.email if isinstance(value, User) else value
 
 
+def _trace(event_type, project, description, *, actor, metadata=None, severity=Severity.INFO):
+    trace.emit(
+        event_type,
+        description=description,
+        project=project,
+        severity=severity,
+        source=trace.source_for(actor),
+        actor=actor,
+        metadata=metadata,
+    )
+
+
 # --- projects -----------------------------------------------------------------------------
 
 
@@ -101,6 +115,13 @@ def create_project(*, actor: User, request=None, **data) -> Project:
     _ensure_staff_user(data["owner"], "owner")
     _ensure_status_allowed(data.get("status", ProjectStatus.PLANNING))
     project = Project.objects.create(slug=_unique_slug(data["name"]), **data)
+    _trace(
+        EventType.PROJECT_CREATED,
+        project,
+        f"Proyecto «{project.name}» creado",
+        actor=actor,
+        metadata={"status": project.status, "owner": project.owner.email},
+    )
     audit.record(
         AuditAction.PROJECT_CREATED,
         actor=actor,
@@ -143,6 +164,13 @@ def update_project(
     for field, value in data.items():
         setattr(project, field, value)
     project.save()
+    _trace(
+        EventType.PROJECT_UPDATED,
+        project,
+        "Proyecto actualizado: " + ", ".join(sorted(changes)),
+        actor=actor,
+        metadata={"changes": changes},
+    )
     audit.record(
         AuditAction.PROJECT_UPDATED, actor=actor, target=project, changes=changes, request=request
     )
@@ -157,6 +185,13 @@ def archive_project(project: Project, *, actor: User, request=None) -> Project:
     project.status = ProjectStatus.ARCHIVED
     project.archived_at = timezone.now()
     project.save(update_fields=["status", "status_before_archive", "archived_at", "updated_at"])
+    _trace(
+        EventType.PROJECT_UPDATED,
+        project,
+        "Proyecto archivado",
+        actor=actor,
+        metadata={"action": "archived"},
+    )
     audit.record(AuditAction.PROJECT_ARCHIVED, actor=actor, target=project, request=request)
     return project
 
@@ -169,6 +204,13 @@ def restore_project(project: Project, *, actor: User, request=None) -> Project:
     project.status_before_archive = ""
     project.archived_at = None
     project.save(update_fields=["status", "status_before_archive", "archived_at", "updated_at"])
+    _trace(
+        EventType.PROJECT_UPDATED,
+        project,
+        "Proyecto restaurado",
+        actor=actor,
+        metadata={"action": "restored", "status": project.status},
+    )
     audit.record(
         AuditAction.PROJECT_RESTORED,
         actor=actor,
@@ -187,6 +229,15 @@ def set_visibility(project: Project, *, visibility: str, actor: User, request=No
         return project
     project.visibility = visibility
     project.save(update_fields=["visibility", "updated_at"])
+    _trace(
+        EventType.PROJECT_UPDATED,
+        project,
+        "Publicado en el portafolio"
+        if visibility == ProjectVisibility.PUBLIC
+        else "Oculto del portafolio",
+        actor=actor,
+        metadata={"visibility": visibility},
+    )
     audit.record(
         AuditAction.PROJECT_PUBLISHED
         if visibility == ProjectVisibility.PUBLIC
@@ -268,6 +319,13 @@ def add_member(
             "El usuario ya está asignado al proyecto.", code="duplicate", field="user"
         )
     member = ProjectMember.objects.create(project=project, user=user, role=role)
+    _trace(
+        EventType.CONFIGURATION_CHANGED,
+        project,
+        f"Desarrollador asignado: {user.email}",
+        actor=actor,
+        metadata={"member": user.email, "role": role},
+    )
     audit.record(
         AuditAction.PROJECT_MEMBER_ADDED,
         actor=actor,
@@ -301,6 +359,13 @@ def remove_member(member: ProjectMember, *, actor: User, request=None) -> None:
     project, email = member.project, member.user.email
     _ensure_not_archived(project)
     member.delete()
+    _trace(
+        EventType.CONFIGURATION_CHANGED,
+        project,
+        f"Desarrollador removido: {email}",
+        actor=actor,
+        metadata={"member": email},
+    )
     audit.record(
         AuditAction.PROJECT_MEMBER_REMOVED,
         actor=actor,
@@ -360,6 +425,13 @@ def grant_access(
         expires_at=expires_at,
         notes=notes,
     )
+    _trace(
+        EventType.ACCESS_GRANTED,
+        project,
+        f"Acceso concedido a {organization.name}",
+        actor=actor,
+        metadata={"organization": organization.name, "expires_at": expires_at},
+    )
     audit.record(
         AuditAction.ACCESS_GRANTED,
         actor=actor,
@@ -399,6 +471,14 @@ def revoke_access(grant: ProjectAccess, *, actor: User, request=None) -> Project
     grant.revoked_at = timezone.now()
     grant.revoked_by = actor
     grant.save(update_fields=["revoked_at", "revoked_by", "updated_at"])
+    _trace(
+        EventType.ACCESS_REVOKED,
+        grant.project,
+        f"Acceso revocado a {grant.organization.name}",
+        actor=actor,
+        severity=Severity.WARNING,
+        metadata={"organization": grant.organization.name},
+    )
     audit.record(
         AuditAction.ACCESS_REVOKED,
         actor=actor,

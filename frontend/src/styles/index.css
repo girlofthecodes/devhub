@@ -20,6 +20,11 @@
   --accent-soft: #eef2ff;
   --accent-fg: #ffffff;
   --ring: rgb(79 70 229 / 0.35);
+  /* Deployment status chart (validated with the dataviz palette checker, light surface). */
+  --chart-success: #0ca30c;
+  --chart-running: #3b82f6;
+  --chart-cancelled: #d4920a;
+  --chart-failed: #d03b3b;
 }
 
 .dark {
@@ -35,6 +40,8 @@
   --accent-soft: rgb(99 102 241 / 0.14);
   --accent-fg: #0b0b0e;
   --ring: rgb(129 140 248 / 0.4);
+  /* Dark step chosen separately (lightness band 0.48–0.67 on the dark surface). */
+  --chart-cancelled: #c08508;
 }
 
 /* Client portal: warmer, teal identity. */

@@ -39,7 +39,7 @@ flowchart LR
 | D10 | **Caché de base de datos** para el rate limiting en producción | Comparte contadores entre los workers de gunicorn sin añadir Redis al MVP. |
 | D11 | **Usuarios y organizaciones no se eliminan**: se desactivan | Conserva el historial y la trazabilidad. |
 
-## Modelo de datos (Fases 1–3)
+## Modelo de datos (Fases 1–4)
 
 ```mermaid
 erDiagram
@@ -55,6 +55,10 @@ erDiagram
   ORGANIZATION ||--o{ PROJECT_ACCESS : ""
   PROJECT ||--o{ ENVIRONMENT : "uno por tipo"
   SERVER ||--o{ ENVIRONMENT : "aloja"
+  ENVIRONMENT ||--o{ DEPLOYMENT : "historial"
+  PROJECT ||--o{ EVENT : ""
+  DEPLOYMENT ||--o{ EVENT : "correlation_id"
+  PROJECT }o--o{ SERVICE_TOKEN : "alcance"
 
   USER {
     uuid id PK
@@ -135,6 +139,36 @@ erDiagram
     string deployed_version
     enum status
   }
+  DEPLOYMENT {
+    uuid id PK
+    uuid environment FK "PROTECT"
+    string version
+    string commit_sha
+    string branch
+    enum source "MANUAL | GITHUB_ACTIONS | API"
+    enum status "PENDING..CANCELLED"
+    datetime started_at
+    datetime finished_at
+    string ci_run_id "único por entorno"
+    string correlation_id UK
+  }
+  EVENT {
+    uuid id PK
+    datetime occurred_at
+    enum event_type
+    enum severity
+    enum source
+    string correlation_id
+    json metadata "saneado"
+    string description "inmutable (trigger)"
+  }
+  SERVICE_TOKEN {
+    uuid id PK
+    string key_prefix UK
+    string token_hash "SHA-256"
+    datetime expires_at
+    datetime revoked_at
+  }
   AUDIT_LOG {
     uuid id PK
     datetime created_at
@@ -149,7 +183,7 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fases 1–3)
+## Roles y permisos (Fases 1–4)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
@@ -167,6 +201,9 @@ erDiagram
 | Servidores: registrar o editar | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Entornos: ver | todos | de sus proyectos | ❌ | ❌ | ❌ |
 | Entornos: crear o editar | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Despliegues y eventos: ver | todos | de sus proyectos | ❌ | ❌ | ❌ |
+| Despliegues: registrar o cambiar estado | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Tokens de servicio | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
 | Portal `/portal` (UI) | → panel | → panel | ✅ | ✅ | → login |
 
@@ -195,10 +232,12 @@ erDiagram
 
 **Infraestructura**: ver las reglas completas en [phase-3.md](phase-3.md#reglas-de-negocio).
 
+**Despliegues y trazabilidad**: ver las reglas completas en [phase-4.md](phase-4.md#reglas-de-negocio).
+
 **Auditoría**
 1. Se registran el inicio y cierre de sesión, los fallos de login, los cambios y la recuperación de contraseña, todas las operaciones administrativas sobre usuarios, organizaciones y membresías, y la revocación de sesiones.
 2. Antes de guardar, se redactan las claves sensibles (`password`, `token`, `secret`, `api_key`, `authorization`, `cookie`, `session_id`, `dsn`, `connection_string`…) y los valores con forma de secreto (URLs `postgres://…`, `Bearer …`, tokens `ghp_…`).
-3. Los registros son de solo inserción. La política de retención con purga controlada se define en la Fase 4 junto con la trazabilidad.
+3. Los registros son de solo inserción, también a nivel de PostgreSQL (trigger), y se purgan solo con `purge_history` (ver [phase-4.md](phase-4.md#reglas-de-negocio)).
 
 ## Seguridad aplicada en la Fase 1
 

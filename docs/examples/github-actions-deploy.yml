@@ -1,0 +1,56 @@
+# EJEMPLO — workflow de una microaplicación que reporta sus despliegues a DevHub.
+# Cópialo al repositorio de la aplicación como .github/workflows/deploy.yml y ajusta el paso
+# "Deploy". Requiere los secretos DEVHUB_URL y DEVHUB_TOKEN (token de servicio limitado al
+# proyecto) y copiar scripts/devhub-deploy-report.sh al repositorio.
+#
+# Seguridad:
+# - Solo se ejecuta en push a main o manualmente: nunca en pull_request_target, para que
+#   una contribución no confiable no pueda usar los secretos ni desplegar.
+# - El job usa un "environment" de GitHub con revisores obligatorios para producción.
+# - El token de DevHub solo puede registrar despliegues de los proyectos asignados.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEVHUB_URL: ${{ secrets.DEVHUB_URL }}
+      DEVHUB_TOKEN: ${{ secrets.DEVHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report start to DevHub
+        id: devhub
+        run: |
+          id=$(./scripts/devhub-deploy-report.sh start \
+                 --project portal-de-pedidos --environment PRODUCTION \
+                 --version "v${{ github.run_number }}")
+          echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy
+        run: echo "Aquí van los pasos reales de build y despliegue"
+
+      - name: Report result to DevHub
+        if: always() && steps.devhub.outputs.deployment_id != ''
+        run: |
+          case "${{ job.status }}" in
+            success) status=SUCCESS ;;
+            cancelled) status=CANCELLED ;;
+            *) status=FAILED ;;
+          esac
+          ./scripts/devhub-deploy-report.sh finish \
+            --id "${{ steps.devhub.outputs.deployment_id }}" --status "$status" \
+            --message "Workflow ${{ github.workflow }} #${{ github.run_number }}: ${{ job.status }}"

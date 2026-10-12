@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/Feedback";
 import { actionTone, useAuditLogs } from "@/modules/audit/api";
+import { DeploymentsChart } from "@/modules/deployments/components/DeploymentsChart";
 import { useAuthenticatedUser } from "@/modules/auth/hooks";
 import { useOrganizations } from "@/modules/organizations/hooks";
 import { useProjects } from "@/modules/projects/hooks";
@@ -180,6 +181,9 @@ export function DashboardPage() {
           </>
         )}
         <HealthCard />
+      </div>
+      <div className="mt-6">
+        <DeploymentsChart title={isAdmin ? "Despliegues por día" : "Despliegues de mis proyectos"} />
       </div>
       {isAdmin && (
         <div className="mt-6">

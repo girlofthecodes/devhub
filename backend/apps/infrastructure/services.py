@@ -5,6 +5,8 @@ from django.db import transaction
 from apps.audit import services as audit
 from apps.audit.models import AuditAction
 from apps.projects.models import Project
+from apps.traceability import services as trace
+from apps.traceability.models import EventType
 from apps.users.models import User
 from common.exceptions import DomainError
 
@@ -122,6 +124,15 @@ def _sync_project_site_url(
     previous = project.site_url
     project.site_url = new_url
     project.save(update_fields=["site_url", "updated_at"])
+    trace.emit(
+        EventType.PROJECT_UPDATED,
+        description="URL del sitio sincronizada con Production",
+        project=project,
+        environment=environment,
+        source=trace.source_for(actor),
+        actor=actor,
+        metadata={"site_url": {"from": previous, "to": new_url}},
+    )
     audit.record(
         AuditAction.PROJECT_UPDATED,
         actor=actor,
@@ -145,6 +156,14 @@ def create_environment(
             field="kind",
         )
     environment = Environment.objects.create(project=project, kind=kind, **data)
+    trace.emit(
+        EventType.CONFIGURATION_CHANGED,
+        description=f"Entorno {environment.get_kind_display()} creado",
+        environment=environment,
+        source=trace.source_for(actor),
+        actor=actor,
+        metadata={k: _serializable(v) for k, v in data.items()},
+    )
     audit.record(
         AuditAction.ENVIRONMENT_CREATED,
         actor=actor,
@@ -175,6 +194,15 @@ def update_environment(
     for field, value in data.items():
         setattr(environment, field, value)
     environment.save()
+    trace.emit(
+        EventType.CONFIGURATION_CHANGED,
+        description=f"Entorno {environment.get_kind_display()} actualizado: "
+        + ", ".join(sorted(changes)),
+        environment=environment,
+        source=trace.source_for(actor),
+        actor=actor,
+        metadata={"changes": changes},
+    )
     audit.record(
         AuditAction.ENVIRONMENT_UPDATED,
         actor=actor,

@@ -8,7 +8,6 @@ import {
   GitBranch,
   Globe,
   ImageUp,
-  Info,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -23,6 +22,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Alert, ErrorState, Skeleton } from "@/components/ui/Feedback";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { ProjectActivityCard } from "@/modules/deployments/components/ProjectActivityCard";
 import { ProjectEnvironmentsCard } from "@/modules/infrastructure/components/ProjectEnvironmentsCard";
 import { ApiError } from "@/services/http";
 import { formatDateTime } from "@/utils/format";
@@ -249,12 +249,7 @@ export function ProjectDetailPage() {
           {canManage && (
             <AccessGrantsCard scope={{ project: { id: p.id, name: p.name, is_archived: p.is_archived } }} />
           )}
-          <Card>
-            <CardBody className="flex items-start gap-3 text-sm text-muted">
-              <Info className="mt-0.5 size-4 shrink-0" />
-              El historial de despliegues y los eventos de trazabilidad de este proyecto se habilitan en la Fase 4.
-            </CardBody>
-          </Card>
+          <ProjectActivityCard project={{ id: p.id, is_archived: p.is_archived }} canDeploy={canEdit} />
         </div>
 
         <div className="space-y-6">
