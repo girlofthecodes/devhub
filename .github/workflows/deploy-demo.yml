@@ -1,0 +1,62 @@
+# Controlled deployment to the Home Lab (demo) — manual only.
+#
+# Safety:
+# - Only `workflow_dispatch` (never pull_request / pull_request_target): untrusted contributions
+#   cannot trigger it, and it refuses to run from any ref other than main.
+# - Runs on a self-hosted runner installed on Servidor A (outbound-only; no inbound ports).
+#   Configure the runner for THIS repository only and never for public forks.
+# - Uses the GitHub environment "demo": add required reviewers so a person approves each run.
+# - Secrets (DEVHUB_URL, DEVHUB_TOKEN) live in that environment; the server env file stays on
+#   the server (/etc/devhub/server-a.env) and is never part of the repository.
+name: deploy-demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: Motivo del despliegue
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, homelab]
+    environment: demo
+    timeout-minutes: 30
+    env:
+      DEVHUB_URL: ${{ secrets.DEVHUB_URL }}
+      DEVHUB_TOKEN: ${{ secrets.DEVHUB_TOKEN }}
+      DEVHUB_ENV_FILE: /etc/devhub/server-a.env
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report start to DevHub
+        id: devhub
+        env:
+          # Never interpolate user input into the script body (command injection).
+          REASON: ${{ inputs.reason }}
+        run: |
+          id=$(scripts/devhub-deploy-report.sh start --project devhub --environment DEMO \
+                 --version "${GITHUB_SHA::7}" --message "$REASON")
+          echo "deployment_id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy
+        run: scripts/deploy.sh --tag "${GITHUB_SHA::7}" --tunnel
+
+      - name: Report result to DevHub
+        if: always() && steps.devhub.outputs.deployment_id != ''
+        run: |
+          case "${{ job.status }}" in
+            success) status=SUCCESS ;;
+            cancelled) status=CANCELLED ;;
+            *) status=FAILED ;;
+          esac
+          scripts/devhub-deploy-report.sh finish --id "${{ steps.devhub.outputs.deployment_id }}" \
+            --status "$status" --message "deploy-demo #${{ github.run_number }}: ${{ job.status }}"

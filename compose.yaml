@@ -45,6 +45,30 @@ services:
       start_period: 40s
       retries: 5
 
+  # Proceso independiente que ejecuta los health checks (una sola instancia).
+  monitor:
+    build:
+      context: ./backend
+      target: dev
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.local
+      POSTGRES_HOST: db
+      MONITOR_LOOP_SECONDS: "10"
+    volumes:
+      - ./backend:/app
+    command: ["python", "manage.py", "run_monitor"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/tmp/devhub-monitor-heartbeat') < 120 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
   frontend:
     build:
       context: ./frontend

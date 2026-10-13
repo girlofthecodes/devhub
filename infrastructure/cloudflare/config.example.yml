@@ -1,0 +1,19 @@
+# EJEMPLO — Cloudflare Tunnel gestionado localmente (alternativa al token del dashboard).
+# Con el modo recomendado (túnel gestionado en el dashboard + CLOUDFLARE_TUNNEL_TOKEN en
+# server-a.env) este archivo NO es necesario. Úsalo solo si creas el túnel con
+# `cloudflared tunnel create devhub` y montas las credenciales en el contenedor.
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  # DevHub (panel, portal y API) → Caddy en la red interna de Docker.
+  - hostname: devhub.example.com
+    service: http://proxy:8080
+    originRequest:
+      connectTimeout: 10s
+      noTLSVerify: false
+  # Ejemplo de microaplicación publicada por el mismo túnel (otro contenedor del Servidor A).
+  # - hostname: demo-pedidos.example.com
+  #   service: http://pedidos-demo:8000
+  # Todo lo demás se rechaza.
+  - service: http_status:404

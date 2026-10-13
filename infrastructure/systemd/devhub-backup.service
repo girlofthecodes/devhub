@@ -1,0 +1,12 @@
+# EJEMPLO (Servidor B) — copia a /etc/systemd/system/ y ajusta la ruta del repositorio.
+[Unit]
+Description=DevHub: respaldo de PostgreSQL
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/devhub
+ExecStart=/opt/devhub/scripts/backup.sh --env-file /etc/devhub/server-b.env
+Nice=10
+IOSchedulingClass=idle

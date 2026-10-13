@@ -1,0 +1,12 @@
+# EJEMPLO (Servidor B) — respaldo diario a las 03:15 (con margen aleatorio).
+#   systemctl enable --now devhub-backup.timer
+[Unit]
+Description=DevHub: respaldo diario de PostgreSQL
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

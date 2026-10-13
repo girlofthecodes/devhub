@@ -11,6 +11,7 @@ import logging
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import DatabaseError, InterfaceError, OperationalError
 from django.http import Http404
 from rest_framework import exceptions, status
 from rest_framework.response import Response
@@ -54,6 +55,20 @@ def api_exception_handler(exc, context):
         exc = exceptions.NotFound()
     elif isinstance(exc, DjangoPermissionDenied):
         exc = exceptions.PermissionDenied()
+
+    if isinstance(exc, OperationalError | InterfaceError) or (
+        isinstance(exc, DatabaseError) and "connection" in str(exc).lower()
+    ):
+        logger.error("Database unavailable: %s", exc.__class__.__name__)
+        return Response(
+            {
+                "code": "database_unavailable",
+                "detail": (
+                    "El servicio de datos no está disponible temporalmente. Intenta de nuevo."
+                ),
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
 
     response = exception_handler(exc, context)
     if response is None:

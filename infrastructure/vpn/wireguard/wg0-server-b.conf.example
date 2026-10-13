@@ -1,0 +1,11 @@
+# EJEMPLO — WireGuard en el Servidor B (datos). Copia a /etc/wireguard/wg0.conf (chmod 600).
+[Interface]
+Address = 10.66.0.2/24
+ListenPort = 51820
+PrivateKey = <CLAVE_PRIVADA_SERVIDOR_B>
+
+[Peer]
+# Servidor A (aplicaciones)
+PublicKey = <CLAVE_PUBLICA_SERVIDOR_A>
+AllowedIPs = 10.66.0.1/32
+PersistentKeepalive = 25

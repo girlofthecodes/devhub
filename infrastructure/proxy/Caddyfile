@@ -1,0 +1,49 @@
+# DevHub reverse proxy (Servidor A). Recibe el tráfico de cloudflared (HTTP interno; TLS lo
+# termina Cloudflare) y lo reparte: API/admin → backend, /media → archivos, resto → SPA.
+{
+	admin off
+	auto_https off
+	# Conserva X-Forwarded-* que llegan de cloudflared (red interna de Docker).
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:8080 {
+	encode zstd gzip
+	request_body {
+		max_size 5MB
+	}
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	@backend path /api/* /django-admin/* /static/*
+	handle @backend {
+		# Passive health only: Docker's healthcheck already watches the backend, and an active
+		# probe would hit Django with Host "backend:8000" (rejected by ALLOWED_HOSTS).
+		reverse_proxy backend:8000 {
+			fail_duration 10s
+		}
+	}
+
+	# Uploaded logos (validated images). Never executable, never sniffed.
+	handle_path /media/* {
+		root * /srv/media
+		header Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'none'; sandbox"
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
+	handle {
+		reverse_proxy frontend:8080
+	}
+}

@@ -72,6 +72,8 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   RELEASE_PUBLISHED: "Versión publicada",
   RELEASE_WITHDRAWN: "Versión retirada",
   DEMO_ACCESS_ISSUED: "Acceso a demo emitido",
+  HEALTH_CHECK_CREATED: "Health check creado",
+  HEALTH_CHECK_UPDATED: "Health check actualizado",
 };
 
 export const auditApi = {

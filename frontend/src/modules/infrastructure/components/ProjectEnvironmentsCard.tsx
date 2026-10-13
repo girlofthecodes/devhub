@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { ErrorState, Skeleton } from "@/components/ui/Feedback";
+import { HealthBadge } from "@/modules/monitoring/components";
+import { useHealthChecks } from "@/modules/monitoring/hooks";
 import { formatRelative } from "@/utils/format";
 import { displayUrl } from "@/utils/urls";
 
@@ -25,6 +27,8 @@ export function ProjectEnvironmentsCard({ project, canEdit }: Props) {
   const [editing, setEditing] = useState<Environment | null>(null);
   const [creating, setCreating] = useState<EnvironmentKind | null>(null);
   const byKind = new Map((environments.data?.results ?? []).map((e) => [e.kind, e]));
+  const checks = useHealthChecks({ project: project.id, page_size: 10 });
+  const checkByEnv = new Map((checks.data?.results ?? []).map((c) => [c.environment, c]));
   const editable = canEdit && !project.is_archived;
 
   return (
@@ -62,6 +66,17 @@ export function ProjectEnvironmentsCard({ project, canEdit }: Props) {
                         <Badge tone={INFRA_STATUS[env.status].tone} dot>
                           {env.status_label}
                         </Badge>
+                        {checkByEnv.get(env.id) ? (
+                          <Link to={`/admin/monitoring/${checkByEnv.get(env.id)!.id}`}>
+                            <HealthBadge
+                              status={checkByEnv.get(env.id)!.effective_status}
+                              label={checkByEnv.get(env.id)!.effective_status_label}
+                              stale={checkByEnv.get(env.id)!.is_stale}
+                            />
+                          </Link>
+                        ) : (
+                          env.public_url && <Badge>Sin monitoreo</Badge>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                         <span className="inline-flex items-center gap-1">

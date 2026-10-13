@@ -6,7 +6,7 @@ independientes de un equipo de software, desplegada en un Home Lab distribuido. 
 - **DevHub Admin** (`/admin`): panel privado para administradores y desarrolladores.
 - **DevHub Client Portal** (`/portal`): portal independiente para clientes.
 
-> Estado: **Fases 1 a 5 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad y portal de clientes). Ver [Hoja de ruta](#hoja-de-ruta).
+> Estado: **Fases 1 a 6 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad, portal de clientes, monitoreo y Home Lab). Lo que depende de infraestructura real (VPN entre dos equipos, Cloudflare, runner de GitHub) está preparado y documentado en [docs/homelab.md](docs/homelab.md). Ver [Hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -15,7 +15,7 @@ independientes de un equipo de software, desplegada en un Home Lab distribuido. 
 | Frontend | React 19 + TypeScript, Vite, React Router, Tailwind CSS 4, TanStack Query, React Hook Form + Zod, Axios, Lucide |
 | Backend | Python 3.12, Django 5.2, Django REST Framework, django-filter, drf-spectacular, PostgreSQL 17 |
 | Pruebas | pytest + pytest-django (backend), Vitest + Testing Library (frontend) |
-| Infra local | Docker + Docker Compose |
+| Infra | Docker + Compose, Caddy, Cloudflare Tunnel, WireGuard/Tailscale, GitHub Actions |
 
 ## Inicio rápido (desarrollo local)
 
@@ -23,7 +23,7 @@ Requisitos: Docker Desktop (o Docker Engine + Compose v2). No se necesita Python
 
 ```bash
 cp .env.example .env          # valores de desarrollo; nunca subas .env
-docker compose up --build     # db + backend + frontend
+docker compose up --build     # db + backend + monitor + frontend
 ```
 
 | Servicio | URL |
@@ -66,9 +66,14 @@ npm run build       # build de producción
 > el servicio (`docker compose restart frontend`).
 
 ```bash
-# Trazabilidad: política de retención (por defecto 365 días eventos / 730 auditoría)
+# Trazabilidad: política de retención (365 días eventos / 730 auditoría / 30 resultados de monitoreo)
 docker compose exec backend python manage.py purge_history --dry-run
+# Monitoreo: el servicio `monitor` verifica los health checks periódicamente; una pasada manual:
+docker compose exec monitor python manage.py run_monitor --once
 ```
+
+El monitoreo solo consulta URLs públicas `https` registradas en entornos. En local, los
+dominios que resuelven a IPs privadas se rechazan a propósito (protección SSRF).
 
 ## Estructura
 
@@ -84,7 +89,8 @@ devhub/
 │   │   ├── infrastructure/  inventario de servidores y entornos por proyecto
 │   │   ├── deployments/     despliegues, tokens de servicio, integración CI/CD
 │   │   ├── traceability/    eventos inmutables, línea de tiempo, retención
-│   │   └── portal/          API del portal de clientes, tickets de demo, portafolio público
+│   │   ├── portal/          API del portal de clientes, tickets de demo, portafolio público
+│   │   └── monitoring/      health checks, sonda anti-SSRF, worker run_monitor
 │   ├── common/              errores, permisos, paginación, saneamiento, request-id
 │   ├── tests/               pytest
 │   └── docker/entrypoint.sh
@@ -94,18 +100,17 @@ devhub/
 │       ├── components/      UI reutilizable (Button, Field, Modal, Table, Toast…)
 │       ├── layouts/         AdminLayout, PortalLayout, AuthLayout
 │       ├── modules/         auth, users, organizations, projects, infrastructure, deployments,
-│       │                    traceability, settings, audit, dashboard, portal
+│       │                    traceability, monitoring, settings, audit, dashboard, portal
 │       ├── services/        cliente HTTP (CSRF, errores normalizados)
 │       └── hooks/ types/ utils/ styles/
-├── infrastructure/          (Fase 6) compose Home Lab, proxy, VPN, Cloudflare, monitoreo
-├── scripts/                 devhub-deploy-report.sh (CI → DevHub); (Fase 6) deploy, backup, restore
+├── infrastructure/          compose de los servidores A y B, Caddy, pg_hba, VPN, firewall, Cloudflare, systemd
+├── scripts/                 setup, build, migrate, deploy, healthcheck, status, backup, restore,
+│                            create-app-db, devhub-deploy-report (CI → DevHub)
+├── .github/                 CI (ci.yml), despliegue controlado (deploy-demo.yml), Dependabot
 ├── examples/demo-guard/     middleware de referencia para proteger demos con DevHub
 ├── docs/                    arquitectura y decisiones
 └── compose.yaml             entorno de desarrollo local
 ```
-
-El módulo `monitoring`
-se crean en su fase correspondiente (no se generan apps vacías).
 
 ## Documentación
 
@@ -115,6 +120,9 @@ se crean en su fase correspondiente (no se generan apps vacías).
 - [Fase 3 — infraestructura: servidores, entornos e inventario](docs/phase-3.md)
 - [Fase 4 — despliegues, trazabilidad e integración con GitHub Actions](docs/phase-4.md)
 - [Fase 5 — portal de clientes, versiones compartidas y acceso seguro a demos](docs/phase-5.md)
+- [Fase 6 — monitoreo, Home Lab, scripts, backups y CI/CD](docs/phase-6.md)
+- [Guía de despliegue en el Home Lab (VPN, túnel, backups, variables, problemas frecuentes)](docs/homelab.md)
+- [Criterios de aceptación del MVP y su evidencia](docs/acceptance.md)
 
 ## Hoja de ruta
 
@@ -125,4 +133,4 @@ se crean en su fase correspondiente (no se generan apps vacías).
 | 3 | Servidores, entornos, inventario | ✅ Completada |
 | 4 | Despliegues, trazabilidad, integración GitHub Actions | ✅ Completada |
 | 5 | Portal de clientes: apps autorizadas, demos protegidas, versiones | ✅ Completada |
-| 6 | Monitoreo, Docker Home Lab, VPN, Cloudflare Tunnel, scripts, backups, CI/CD | Pendiente |
+| 6 | Monitoreo, Docker Home Lab, VPN, Cloudflare Tunnel, scripts, backups, CI/CD | ✅ Completada (VPN/túnel/runner: preparados, requieren infraestructura real) |

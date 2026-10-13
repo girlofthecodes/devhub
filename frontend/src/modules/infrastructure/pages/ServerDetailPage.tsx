@@ -118,7 +118,7 @@ export function ServerDetailPage() {
                   ["Sistema operativo", s.operating_system || "—"],
                   ["Ubicación lógica", s.location || "—"],
                   ["Dirección VPN", s.vpn_address ?? "—"],
-                  ["Última verificación", s.last_checked_at ? formatDateTime(s.last_checked_at) : "Sin verificar (monitoreo en Fase 6)"],
+                  ["Última verificación de sus servicios", s.last_checked_at ? formatDateTime(s.last_checked_at) : "Sin verificar"],
                   ["Registrado", formatDateTime(s.created_at)],
                   ["Actualizado", formatDateTime(s.updated_at)],
                 ] as const

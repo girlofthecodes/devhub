@@ -1,0 +1,11 @@
+# EJEMPLO (Servidor A) — purga semanal (domingo 04:30).
+#   systemctl enable --now devhub-purge.timer
+[Unit]
+Description=DevHub: purga semanal por retención
+
+[Timer]
+OnCalendar=Sun *-*-* 04:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

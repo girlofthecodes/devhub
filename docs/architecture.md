@@ -11,17 +11,28 @@ flowchart LR
   subgraph Navegador
     SPA[React SPA<br/>/admin · /portal]
   end
-  subgraph "Servidor A — Aplicaciones"
-    P[Reverse proxy / Vite dev proxy]
-    API[Django + DRF<br/>/api/v1]
+  CF[Cloudflare<br/>TLS + Tunnel]
+  subgraph "Servidor A — Aplicaciones (sin puertos entrantes)"
+    CD[cloudflared]
+    P[Caddy<br/>reverse proxy]
+    API[Django + DRF<br/>gunicorn · /api/v1]
+    FE[nginx<br/>SPA estática]
+    MON[monitor<br/>run_monitor]
   end
   subgraph "Servidor B — Datos"
-    DB[(PostgreSQL)]
+    DB[(PostgreSQL 17)]
   end
-  SPA -- "mismo origen<br/>cookies de sesión + CSRF" --> P
-  P -- "/api" --> API
+  SPA -- "HTTPS, mismo origen<br/>cookies de sesión + CSRF" --> CF
+  CF <-. "conexión saliente" .-> CD
+  CD --> P
+  P -- "/api · /static · /django-admin" --> API
+  P -- "/*" --> FE
   API -- "VPN privada (WireGuard/Tailscale)<br/>en local: red de Compose" --> DB
+  MON -- VPN --> DB
+  MON -- "HTTPS a URLs públicas validadas" --> Apps[(Apps publicadas)]
 ```
+
+Detalle del Home Lab, el monitoreo y la operación: [phase-6.md](phase-6.md) y [homelab.md](homelab.md).
 
 ## Decisiones técnicas
 
@@ -39,7 +50,7 @@ flowchart LR
 | D10 | **Caché de base de datos** para el rate limiting en producción | Comparte contadores entre los workers de gunicorn sin añadir Redis al MVP. |
 | D11 | **Usuarios y organizaciones no se eliminan**: se desactivan | Conserva el historial y la trazabilidad. |
 
-## Modelo de datos (Fases 1–5)
+## Modelo de datos (Fases 1–6)
 
 ```mermaid
 erDiagram
@@ -62,6 +73,8 @@ erDiagram
   PROJECT ||--o{ RELEASE : "versiones para clientes"
   ENVIRONMENT ||--o{ DEMO_ACCESS_TOKEN : "tickets de demo"
   USER ||--o{ DEMO_ACCESS_TOKEN : ""
+  ENVIRONMENT ||--o| HEALTH_CHECK : "monitoreo"
+  HEALTH_CHECK ||--o{ CHECK_RESULT : "histórico (30 días)"
 
   USER {
     uuid id PK
@@ -131,7 +144,7 @@ erDiagram
     string operating_system
     inet vpn_address "solo privada / CGNAT"
     enum status "ACTIVE | MAINTENANCE | INACTIVE"
-    datetime last_checked_at "monitoreo (Fase 6)"
+    datetime last_checked_at "última verificación de sus servicios"
   }
   ENVIRONMENT {
     uuid id PK
@@ -188,6 +201,23 @@ erDiagram
     datetime expires_at "5 min"
     datetime redeemed_at
   }
+  HEALTH_CHECK {
+    uuid id PK
+    uuid environment FK "único"
+    string path "solo la ruta; host = public_url"
+    int interval_seconds "min. 60"
+    int failure_threshold "antirrebote"
+    enum status "HEALTHY | DEGRADED | UNAVAILABLE | UNKNOWN"
+    datetime last_checked_at "obsoleto => UNKNOWN"
+  }
+  CHECK_RESULT {
+    uuid id PK
+    uuid health_check FK
+    datetime checked_at
+    enum status
+    int response_ms
+    int status_code
+  }
   AUDIT_LOG {
     uuid id PK
     datetime created_at
@@ -202,7 +232,7 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fases 1–5)
+## Roles y permisos (Fases 1–6)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
@@ -224,6 +254,9 @@ erDiagram
 | Despliegues: registrar o cambiar estado | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
 | Tokens de servicio | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Versiones para clientes: gestionar | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Monitoreo: ver health checks y resultados | todos | de sus proyectos | ❌ | ❌ | ❌ |
+| Monitoreo: configurar o «Verificar ahora» | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
+| Portal: disponibilidad de sus aplicaciones (solo estado) | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Portal: aplicaciones autorizadas, versiones publicadas, abrir demo | ❌ (usa el panel) | ❌ | ✅ (solo su organización) | ❌ | ❌ |
 | Portafolio público | ✅ | ✅ | ✅ | ✅ | ✅ (si está habilitado) |
 | Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
@@ -257,6 +290,8 @@ erDiagram
 **Despliegues y trazabilidad**: ver las reglas completas en [phase-4.md](phase-4.md#reglas-de-negocio).
 
 **Portal de clientes**: ver las reglas completas en [phase-5.md](phase-5.md#reglas-de-negocio).
+
+**Monitoreo**: ver las reglas completas en [phase-6.md](phase-6.md#reglas-de-negocio).
 
 **Auditoría**
 1. Se registran el inicio y cierre de sesión, los fallos de login, los cambios y la recuperación de contraseña, todas las operaciones administrativas sobre usuarios, organizaciones y membresías, y la revocación de sesiones.

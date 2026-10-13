@@ -1,0 +1,12 @@
+# PostgreSQL client authentication for the DevHub data server.
+# __ALLOWED_CIDR__ is replaced at startup with DB_ALLOWED_CIDR (the VPN subnet).
+#
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+local   all             all                                     scram-sha-256
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
+# Remote clients: only from the private VPN subnet, always with SCRAM.
+host    all             all             __ALLOWED_CIDR__        scram-sha-256
+# Everything else is rejected.
+host    all             all             0.0.0.0/0               reject
+host    all             all             ::/0                    reject

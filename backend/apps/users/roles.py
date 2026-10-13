@@ -30,6 +30,8 @@ ROLE_MODEL_PERMISSIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "deployments.servicetoken": ("view",),
         "traceability.event": ("view",),
         "projects.release": ("add", "change", "view"),
+        "monitoring.healthcheck": ("add", "change", "view"),
+        "monitoring.checkresult": ("view",),
     },
     Role.DEVELOPER: {
         "organizations.organization": ("view",),
@@ -40,6 +42,8 @@ ROLE_MODEL_PERMISSIONS: dict[str, dict[str, tuple[str, ...]]] = {
         "deployments.deployment": ("add", "view"),
         "traceability.event": ("view",),
         "projects.release": ("add", "change", "view"),
+        "monitoring.healthcheck": ("add", "change", "view"),
+        "monitoring.checkresult": ("view",),
     },
     Role.CLIENT: {},
     Role.VISITOR: {},

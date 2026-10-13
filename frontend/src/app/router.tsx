@@ -20,6 +20,7 @@ import { ServerDetailPage } from "@/modules/infrastructure/pages/ServerDetailPag
 import { OrganizationDetailPage } from "@/modules/organizations/pages/OrganizationDetailPage";
 import { OrganizationsPage } from "@/modules/organizations/pages/OrganizationsPage";
 import { DemoLaunchPage, PortalAppDetailPage, PortalAppsPage, PortalDemosPage } from "@/modules/portal/pages";
+import { HealthCheckDetailPage, MonitoringPage } from "@/modules/monitoring/pages";
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
 import { ProjectDetailPage } from "@/modules/projects/pages/ProjectDetailPage";
 import { ProjectsPage } from "@/modules/projects/pages/ProjectsPage";
@@ -89,6 +90,14 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: "traceability", element: <TraceabilityPage />, handle: { crumb: "Trazabilidad" } },
+      {
+        path: "monitoring",
+        handle: { crumb: "Monitoreo" },
+        children: [
+          { index: true, element: <MonitoringPage /> },
+          { path: ":id", element: <HealthCheckDetailPage />, handle: { crumb: "Health check" } },
+        ],
+      },
       {
         path: "settings/integrations",
         element: adminOnly(<IntegrationsPage />),

@@ -90,7 +90,9 @@ post() {
 
 case "$ACTION" in
   start)
-    [ -n "$PROJECT" ] && [ -n "$ENVIRONMENT" ] && [ -n "$VERSION" ] || die "start requiere --project, --environment y --version"
+    if [ -z "$PROJECT" ] || [ -z "$ENVIRONMENT" ] || [ -z "$VERSION" ]; then
+      die "start requiere --project, --environment y --version"
+    fi
     body="$(json project="$PROJECT" environment="$ENVIRONMENT" version="$VERSION" \
       status="${STATUS:-RUNNING}" message="$MESSAGE" commit_sha="$COMMIT" branch="$BRANCH" \
       ci_run_id="$RUN_ID" ci_run_url="$RUN_URL" triggered_by="$ACTOR")"
@@ -98,7 +100,9 @@ case "$ACTION" in
     "$PY" -c 'import json,sys; d=json.loads(sys.argv[1]); print(d["id"]); sys.stderr.write("devhub: despliegue %s -> %s/%s [%s]\n" % (d["version"], d["project_slug"], d["environment_kind"], d["status"]))' "$response"
     ;;
   finish)
-    [ -n "$DEPLOYMENT_ID" ] && [ -n "$STATUS" ] || die "finish requiere --id y --status"
+    if [ -z "$DEPLOYMENT_ID" ] || [ -z "$STATUS" ]; then
+      die "finish requiere --id y --status"
+    fi
     body="$(json status="$STATUS" message="$MESSAGE")"
     response="$(post "$BASE/$DEPLOYMENT_ID/status/" "$body")"
     "$PY" -c 'import json,sys; d=json.loads(sys.argv[1]); sys.stderr.write("devhub: despliegue %s [%s]\n" % (d["version"], d["status"]))' "$response"

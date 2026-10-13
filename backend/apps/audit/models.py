@@ -50,6 +50,8 @@ class AuditAction(models.TextChoices):
     RELEASE_PUBLISHED = "RELEASE_PUBLISHED", "Versión publicada"
     RELEASE_WITHDRAWN = "RELEASE_WITHDRAWN", "Versión retirada"
     DEMO_ACCESS_ISSUED = "DEMO_ACCESS_ISSUED", "Acceso a demo emitido"
+    HEALTH_CHECK_CREATED = "HEALTH_CHECK_CREATED", "Health check creado"
+    HEALTH_CHECK_UPDATED = "HEALTH_CHECK_UPDATED", "Health check actualizado"
 
 
 class ImmutableRecordError(Exception):

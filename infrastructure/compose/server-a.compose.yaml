@@ -1,0 +1,134 @@
+# DevHub — Servidor A (aplicaciones).
+#
+# Servicios: backend (gunicorn), monitor (health checks), frontend (estáticos), proxy (Caddy)
+# y cloudflared (Cloudflare Tunnel, perfil "tunnel"). PostgreSQL vive en el Servidor B y se
+# alcanza por la VPN (POSTGRES_HOST = IP privada de WireGuard/Tailscale).
+#
+# Uso (desde la raíz del repositorio):
+#   cp infrastructure/compose/server-a.env.example /etc/devhub/server-a.env   # y rellénalo
+#   DEVHUB_ENV_FILE=/etc/devhub/server-a.env scripts/deploy.sh
+#
+# No se publica ningún puerto hacia Internet: el tráfico entra por el túnel saliente de
+# cloudflared. El puerto 127.0.0.1:${PROXY_LOCAL_PORT} es solo para comprobaciones locales.
+name: devhub-app
+
+x-app: &app
+  image: ${DEVHUB_BACKEND_IMAGE:-devhub-backend:latest}
+  env_file: ${DEVHUB_ENV_FILE:-./server-a.env}
+  restart: unless-stopped
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  networks: [internal]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+services:
+  backend:
+    <<: *app
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      RUN_MIGRATIONS: "false"   # las migraciones las ejecuta scripts/deploy.sh una sola vez
+      BOOTSTRAP_ADMIN: "false"
+      DJANGO_MEDIA_ROOT: /app/media
+    volumes:
+      - media:/app/media
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    deploy:
+      resources:
+        limits: { memory: 768m }
+
+  monitor:
+    <<: *app
+    command: ["python", "manage.py", "run_monitor"]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      RUN_MIGRATIONS: "false"
+      BOOTSTRAP_ADMIN: "false"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time()-os.path.getmtime('/tmp/devhub-monitor-heartbeat') < 120 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    deploy:
+      resources:
+        limits: { memory: 256m }
+
+  frontend:
+    image: ${DEVHUB_FRONTEND_IMAGE:-devhub-frontend:latest}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    networks: [internal]
+    deploy:
+      resources:
+        limits: { memory: 64m }
+
+  proxy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    # The official binary carries the NET_BIND_SERVICE file capability; without it in the
+    # bounding set the kernel refuses to exec it ("operation not permitted").
+    cap_add: [NET_BIND_SERVICE]
+    volumes:
+      - ../proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - media:/srv/media:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "127.0.0.1:${PROXY_LOCAL_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks: [internal]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.12.2
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      # Validated by scripts/deploy.sh --tunnel (compose interpolates inactive profiles too).
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      proxy:
+        condition: service_healthy
+    networks: [internal]
+
+volumes:
+  media:
+  caddy_data:
+  caddy_config:
+
+networks:
+  internal:

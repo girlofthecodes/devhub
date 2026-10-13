@@ -4,10 +4,8 @@ no servers, internal environments, deployments, repositories, members or other c
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.monitoring.services import availability_for_project
 from apps.projects.models import Project, Release
-
-# Availability comes from monitoring (Fase 6). Until then it is honestly "UNKNOWN".
-AVAILABILITY_UNKNOWN = {"status": "UNKNOWN", "label": "Sin monitoreo", "checked_at": None}
 
 
 class AvailabilitySerializer(serializers.Serializer):
@@ -64,7 +62,7 @@ class PortalProjectSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(AvailabilitySerializer)
     def get_availability(self, obj: Project) -> dict:
-        return AVAILABILITY_UNKNOWN
+        return availability_for_project(obj)
 
 
 class PortalProjectDetailSerializer(PortalProjectSerializer):

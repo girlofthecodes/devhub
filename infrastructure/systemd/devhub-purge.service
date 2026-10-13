@@ -1,0 +1,10 @@
+# EJEMPLO (Servidor A) — aplica la política de retención (eventos, auditoría, resultados).
+[Unit]
+Description=DevHub: purga por retención
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/devhub
+Environment=DEVHUB_ENV_FILE=/etc/devhub/server-a.env
+ExecStart=/usr/bin/docker compose -f infrastructure/compose/server-a.compose.yaml --env-file /etc/devhub/server-a.env exec -T backend python manage.py purge_history

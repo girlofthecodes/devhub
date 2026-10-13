@@ -1,0 +1,17 @@
+# EJEMPLO — WireGuard en el Servidor A (aplicaciones). Copia a /etc/wireguard/wg0.conf (chmod 600).
+# Genera las claves EN el servidor:  wg genkey | tee privatekey | wg pubkey > publickey
+# Nunca subas claves privadas al repositorio.
+[Interface]
+Address = 10.66.0.1/24
+PrivateKey = <CLAVE_PRIVADA_SERVIDOR_A>
+# El Servidor A no necesita aceptar conexiones entrantes de WireGuard si el B es el que
+# tiene el puerto abierto; mantén el keepalive para atravesar NAT.
+
+[Peer]
+# Servidor B (datos)
+PublicKey = <CLAVE_PUBLICA_SERVIDOR_B>
+# IP o DNS público del router del Servidor B (puerto UDP reenviado solo para WireGuard).
+Endpoint = <IP_O_DNS_PUBLICO_SERVIDOR_B>:51820
+# Solo la IP de la VPN del servidor de datos: nada más se enruta por el túnel.
+AllowedIPs = 10.66.0.2/32
+PersistentKeepalive = 25

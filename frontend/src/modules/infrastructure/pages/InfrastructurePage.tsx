@@ -73,7 +73,7 @@ function ServerCard({ server }: { server: Server }) {
             <Layers className="mr-1 inline size-3.5" />
             {server.active_environment_count}/{server.environment_count} entornos
           </span>
-          <span className="ml-auto flex items-center gap-1" title="Última verificación (monitoreo, Fase 6)">
+          <span className="ml-auto flex items-center gap-1" title="Última verificación de sus servicios (monitoreo)">
             <Clock className="size-3.5" />
             {server.last_checked_at ? formatRelative(server.last_checked_at) : "Sin verificar"}
           </span>

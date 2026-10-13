@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.traceability",
     "apps.deployments",
     "apps.portal",
+    "apps.monitoring",
 ]
 
 MIDDLEWARE = [
@@ -161,6 +162,16 @@ PUBLIC_PORTFOLIO_ENABLED = env_bool("PUBLIC_PORTFOLIO_ENABLED", True)
 DEMO_TOKEN_TTL_SECONDS = env_int("DEMO_TOKEN_TTL_SECONDS", 300)
 DEMO_SESSION_MINUTES = env_int("DEMO_SESSION_MINUTES", 120)
 
+# Monitoring (worker: `manage.py run_monitor`).
+MONITOR_ALLOWED_PORTS = [int(p) for p in env_list("MONITOR_ALLOWED_PORTS", ["443", "8443"])]
+MONITOR_MIN_INTERVAL_SECONDS = env_int("MONITOR_MIN_INTERVAL_SECONDS", 60)
+MONITOR_MANUAL_MIN_SECONDS = env_int("MONITOR_MANUAL_MIN_SECONDS", 30)
+MONITOR_LOOP_SECONDS = env_int("MONITOR_LOOP_SECONDS", 15)
+MONITOR_MAX_WORKERS = env_int("MONITOR_MAX_WORKERS", 8)
+MONITOR_MAX_PER_PASS = env_int("MONITOR_MAX_PER_PASS", 200)
+MONITOR_HEARTBEAT_FILE = env("MONITOR_HEARTBEAT_FILE", "/tmp/devhub-monitor-heartbeat")  # noqa: S108
+CHECK_RESULT_RETENTION_DAYS = env_int("CHECK_RESULT_RETENTION_DAYS", 30)
+
 # --- Cache (used by throttling) ----------------------------------------------
 CACHES = {
     "default": {
@@ -223,6 +234,7 @@ SPECTACULAR_SETTINGS = {
         "DeploymentInitialStatusEnum": "apps.deployments.serializers.INITIAL_STATUSES",
         "DeploymentTransitionStatusEnum": "apps.deployments.serializers.TRANSITION_STATUSES",
         "ReleaseStatusEnum": "apps.projects.models.ReleaseStatus",
+        "HealthStatusEnum": "apps.monitoring.models.HealthStatus",
         "AvailabilityStatusEnum": [
             ("HEALTHY", "HEALTHY"),
             ("DEGRADED", "DEGRADED"),

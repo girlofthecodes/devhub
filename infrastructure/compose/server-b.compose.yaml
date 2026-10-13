@@ -1,0 +1,54 @@
+# DevHub — Servidor B (datos): PostgreSQL para DevHub y las aplicaciones administradas.
+#
+# PostgreSQL escucha SOLO en la IP privada de la VPN (VPN_BIND_IP) y pg_hba.conf acepta
+# conexiones únicamente desde DB_ALLOWED_CIDR (la subred de la VPN) con scram-sha-256.
+# Cada aplicación usa su propia base y su propio rol (scripts/create-app-db.sh).
+#
+# Uso:
+#   cp infrastructure/compose/server-b.env.example /etc/devhub/server-b.env   # y rellénalo
+#   docker compose -f infrastructure/compose/server-b.compose.yaml --env-file /etc/devhub/server-b.env up -d
+name: devhub-data
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?define POSTGRES_SUPERUSER_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      DB_ALLOWED_CIDR: ${DB_ALLOWED_CIDR:?define DB_ALLOWED_CIDR (subred de la VPN)}
+    # Render pg_hba.conf from the template with the allowed CIDR, then start PostgreSQL.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        sed "s#__ALLOWED_CIDR__#$${DB_ALLOWED_CIDR}#g" /templates/pg_hba.conf > /etc/postgresql-hba.conf &&
+        chmod 644 /etc/postgresql-hba.conf &&
+        exec docker-entrypoint.sh postgres
+        -c hba_file=/etc/postgresql-hba.conf
+        -c listen_addresses='*'
+        -c password_encryption=scram-sha-256
+        -c log_connections=on
+        -c log_disconnections=on
+        -c statement_timeout=60000
+        -c idle_in_transaction_session_timeout=300000
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../postgres/pg_hba.conf.template:/templates/pg_hba.conf:ro
+    ports:
+      # Never 0.0.0.0: bind to the VPN interface address only.
+      - "${VPN_BIND_IP:?define VPN_BIND_IP (IP de este servidor en la VPN)}:${POSTGRES_PORT:-5432}:5432"
+    shm_size: 256m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+
+volumes:
+  pgdata:
