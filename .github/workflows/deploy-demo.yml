@@ -35,7 +35,7 @@ jobs:
       DEVHUB_TOKEN: ${{ secrets.DEVHUB_TOKEN }}
       DEVHUB_ENV_FILE: /etc/devhub/server-a.env
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Report start to DevHub
         id: devhub
