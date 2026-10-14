@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "apps.deployments",
     "apps.portal",
     "apps.monitoring",
+    "apps.commercial",
 ]
 
 MIDDLEWARE = [
@@ -162,6 +163,9 @@ PUBLIC_PORTFOLIO_ENABLED = env_bool("PUBLIC_PORTFOLIO_ENABLED", True)
 DEMO_TOKEN_TTL_SECONDS = env_int("DEMO_TOKEN_TTL_SECONDS", 300)
 DEMO_SESSION_MINUTES = env_int("DEMO_SESSION_MINUTES", 120)
 
+# Fase 7: calendar used for business dates (due dates, overdue, monthly MRR snapshots).
+BUSINESS_TIME_ZONE = env("BUSINESS_TIME_ZONE", "America/Mexico_City")
+
 # Monitoring (worker: `manage.py run_monitor`).
 MONITOR_ALLOWED_PORTS = [int(p) for p in env_list("MONITOR_ALLOWED_PORTS", ["443", "8443"])]
 MONITOR_MIN_INTERVAL_SECONDS = env_int("MONITOR_MIN_INTERVAL_SECONDS", 60)
@@ -183,7 +187,7 @@ CACHES = {
 # --- DRF ----------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "apps.users.authentication.PortalSessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
@@ -235,6 +239,23 @@ SPECTACULAR_SETTINGS = {
         "DeploymentTransitionStatusEnum": "apps.deployments.serializers.TRANSITION_STATUSES",
         "ReleaseStatusEnum": "apps.projects.models.ReleaseStatus",
         "HealthStatusEnum": "apps.monitoring.models.HealthStatus",
+        "PortalEnum": "apps.users.portals.Portal",
+        "FinanceAccessEnum": "common.permissions.FinanceAccess",
+        "CommercialStatusEnum": "apps.commercial.models.CommercialStatus",
+        "ContractKindEnum": "apps.commercial.models.ContractKind",
+        "ContractStatusEnum": "apps.commercial.models.ContractStatus",
+        "BillingPeriodEnum": "apps.commercial.models.BillingPeriod",
+        "CurrencyEnum": "apps.commercial.models.Currency",
+        "ReceivableStatusEnum": "apps.commercial.models.ReceivableStatus",
+        "StoredReceivableStatusEnum": [
+            ("PENDING", "Pendiente"),
+            ("PARTIAL", "Parcial"),
+            ("PAID", "Pagado"),
+            ("CANCELLED", "Cancelado"),
+        ],
+        "PaymentMethodEnum": "apps.commercial.models.PaymentMethod",
+        "ExpenseCategoryEnum": "apps.commercial.models.ExpenseCategory",
+        "ExpenseKindEnum": "apps.commercial.models.ExpenseKind",
         "AvailabilityStatusEnum": [
             ("HEALTHY", "HEALTHY"),
             ("DEGRADED", "DEGRADED"),

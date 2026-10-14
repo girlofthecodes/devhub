@@ -1,4 +1,4 @@
-import { AppWindow, ArrowLeft, Building2, CirclePlay, ExternalLink, Megaphone, ShieldCheck, TriangleAlert } from "lucide-react";
+import { AppWindow, ArrowLeft, Building2, CirclePlay, ExternalLink, FileText, Megaphone, ShieldCheck, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -10,13 +10,13 @@ import { Pagination, SearchInput } from "@/components/ui/Table";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ProjectLogo } from "@/modules/projects/components/ProjectLogo";
 import { ApiError } from "@/services/http";
-import { formatDate } from "@/utils/format";
+import { formatDate, formatDay } from "@/utils/format";
 import { errorMessage } from "@/utils/forms";
 import { displayUrl } from "@/utils/urls";
 
 import { portalApi } from "./api";
 import { AvailabilityBadge, DemoButton, PortalAppCard, ReleaseNotes } from "./components";
-import { usePortalApp, usePortalApps, usePortalReleases } from "./hooks";
+import { usePortalApp, usePortalApps, usePortalContracts, usePortalReleases } from "./hooks";
 
 const PAGE_SIZE = 12;
 
@@ -93,6 +93,72 @@ export function PortalDemosPage() {
   );
 }
 
+export function PortalContractsPage() {
+  const contracts = usePortalContracts();
+  return (
+    <>
+      <PageHeader
+        title="Mis contratos"
+        description="Aplicaciones contratadas por tu organización, su modalidad, vigencia y próximo vencimiento."
+      />
+      {contracts.isError ? (
+        <Card>
+          <ErrorState message={contracts.error.message} onRetry={() => void contracts.refetch()} />
+        </Card>
+      ) : contracts.isPending ? (
+        <Skeleton className="h-40" />
+      ) : contracts.data.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<FileText className="size-5" />}
+            title="Sin contratos para mostrar"
+            description="Cuando tu proveedor habilite la consulta de un contrato, aparecerá aquí."
+          />
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {contracts.data.map((c) => (
+            <Card key={c.id}>
+              <CardBody className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link to={`/cliente/apps/${c.project}`} className="font-semibold text-fg hover:underline">
+                      {c.project_name}
+                    </Link>
+                    <p className="text-sm text-muted">{c.organization_name}</p>
+                  </div>
+                  <Badge tone={c.status === "ACTIVE" ? "success" : c.status === "SUSPENDED" ? "warning" : "neutral"} dot>
+                    {c.status_label}
+                  </Badge>
+                </div>
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <dt className="text-muted">Modalidad</dt>
+                    <dd className="mt-0.5 text-fg">
+                      {c.kind_label}
+                      {c.billing_period_label && ` · ${c.billing_period_label.toLowerCase()}`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted">Vigencia</dt>
+                    <dd className="mt-0.5 text-fg">
+                      {formatDay(c.start_date)} – {c.end_date ? formatDay(c.end_date) : "indefinida"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted">Próximo vencimiento</dt>
+                    <dd className="mt-0.5 text-fg">{c.next_due_date ? formatDay(c.next_due_date) : "Sin pagos pendientes"}</dd>
+                  </div>
+                </dl>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export function PortalAppDetailPage() {
   const { id = "" } = useParams();
   const app = usePortalApp(id);
@@ -121,7 +187,7 @@ export function PortalAppDetailPage() {
   const a = app.data;
   return (
     <>
-      <Link to="/portal/apps" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
+      <Link to="/cliente/apps" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
         <ArrowLeft className="size-4" /> Mis aplicaciones
       </Link>
       <section className="mb-6 flex flex-wrap items-center gap-5 rounded-2xl border border-border bg-surface p-6">
@@ -237,7 +303,7 @@ export function DemoLaunchPage() {
             <TriangleAlert className="mx-auto size-8 text-amber-500" />
             <h1 className="mt-3 text-lg font-semibold text-fg">No se pudo abrir la demostración</h1>
             <p className="mt-1 text-sm text-muted">{error}</p>
-            <Link to={`/portal/apps/${id}`} className="mt-5 inline-block text-sm font-medium text-accent hover:underline">
+            <Link to={`/cliente/apps/${id}`} className="mt-5 inline-block text-sm font-medium text-accent hover:underline">
               Volver a la aplicación
             </Link>
           </CardBody>

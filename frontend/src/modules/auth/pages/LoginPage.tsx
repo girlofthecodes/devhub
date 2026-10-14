@@ -11,13 +11,15 @@ import { applyApiErrors } from "@/utils/forms";
 
 import { useCurrentUser, useLogin } from "../hooks";
 import { loginSchema, type LoginValues } from "../schemas";
-import { homePathFor } from "../types";
+import { ADMIN_LOGIN, CLIENT_LOGIN, homePathFor, type Portal } from "../types";
 
 interface LoginPageProps {
-  variant: "admin" | "portal";
+  /** Portal this form logs in to; the server validates it for every account. */
+  portal: Portal;
 }
 
-export function LoginPage({ variant }: LoginPageProps) {
+export function LoginPage({ portal }: LoginPageProps) {
+  const variant = portal === "admin" ? "admin" : "portal";
   const navigate = useNavigate();
   const location = useLocation();
   const { data: currentUser, isPending } = useCurrentUser();
@@ -34,13 +36,16 @@ export function LoginPage({ variant }: LoginPageProps) {
   });
 
   if (isPending) return <FullPageSpinner />;
-  if (currentUser) return <Navigate to={homePathFor(currentUser.role)} replace />;
+  // A session already open in this same portal goes straight to its home. A session from
+  // the other portal stays on this form: logging in here replaces it.
+  if (currentUser?.portal === portal) return <Navigate to={homePathFor(currentUser.role)} replace />;
+  const otherSession = currentUser && currentUser.portal !== portal;
 
   const from = (location.state as { from?: string } | null)?.from;
 
   const onSubmit = handleSubmit((values) => {
     setFormError(null);
-    login.mutate(values, {
+    login.mutate({ portal, ...values }, {
       onSuccess: (user) => {
         const home = homePathFor(user.role);
         // Only honor the redirect target if it belongs to the user's own area.
@@ -61,6 +66,12 @@ export function LoginPage({ variant }: LoginPageProps) {
       }
     >
       <form onSubmit={onSubmit} noValidate className="space-y-4">
+        {otherSession && (
+          <Alert tone="info">
+            Tienes una sesión abierta en el {portal === "admin" ? "portal de clientes" : "panel administrativo"}. Si
+            inicias sesión aquí, esa sesión se cerrará.
+          </Alert>
+        )}
         {formError && <Alert>{formError}</Alert>}
         <Field label="Correo electrónico" error={errors.email?.message}>
           {({ id, describedBy, invalid }) => (
@@ -87,7 +98,10 @@ export function LoginPage({ variant }: LoginPageProps) {
           )}
         </Field>
         <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-sm font-medium text-accent hover:underline">
+          <Link
+            to={portal === "admin" ? "/forgot-password" : "/forgot-password?portal=cliente"}
+            className="text-sm font-medium text-accent hover:underline"
+          >
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -96,21 +110,26 @@ export function LoginPage({ variant }: LoginPageProps) {
         </Button>
       </form>
       <p className="mt-8 text-center text-sm text-muted">
-        {variant === "admin" ? (
+        {portal === "admin" ? (
           <>
             ¿Eres cliente?{" "}
-            <Link to="/portal/login" className="font-medium text-accent hover:underline">
+            <Link to={CLIENT_LOGIN} className="font-medium text-accent hover:underline">
               Ir al portal de clientes
             </Link>
           </>
         ) : (
           <>
             ¿Formas parte del equipo?{" "}
-            <Link to="/login" className="font-medium text-accent hover:underline">
+            <Link to={ADMIN_LOGIN} className="font-medium text-accent hover:underline">
               Ir al panel administrativo
             </Link>
           </>
         )}
+        <span className="mt-2 block">
+          <Link to="/" className="hover:text-fg hover:underline">
+            Volver al inicio
+          </Link>
+        </span>
       </p>
     </AuthLayout>
   );

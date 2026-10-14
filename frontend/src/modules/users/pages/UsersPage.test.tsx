@@ -25,6 +25,8 @@ const sample: User = {
   full_name: "Dev Uno",
   role: "DEVELOPER",
   role_label: "Desarrollador",
+  client_portal_access: false,
+  finance_access: "NONE",
   is_active: true,
   date_joined: "2026-01-01T00:00:00Z",
   last_login: null,
@@ -93,8 +95,30 @@ describe("UsersPage", () => {
       first_name: "",
       last_name: "",
       role: "CLIENT",
+      client_portal_access: false,
+      finance_access: "NONE",
     });
     expect(await screen.findByText("Usuario creado")).toBeInTheDocument();
+  });
+
+  it("offers explicit finance access and extra client access only to developers", async () => {
+    api.list.mockResolvedValue({ count: 0, next: null, previous: null, results: [] });
+    api.create.mockResolvedValue({ ...sample, email: "dev2@example.com" });
+    const user = userEvent.setup();
+    setup();
+    await user.click(await screen.findByRole("button", { name: "Nuevo usuario" }));
+    await screen.findByRole("dialog", { name: "Nuevo usuario" });
+    expect(screen.queryByLabelText("Acceso financiero")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Correo electrónico/), "dev2@example.com");
+    await user.selectOptions(screen.getByLabelText(/^Rol/), "DEVELOPER");
+    await user.selectOptions(screen.getByLabelText("Acceso financiero"), "VIEW");
+    await user.click(screen.getByLabelText(/También puede entrar al portal de clientes/));
+    await user.click(screen.getByRole("button", { name: "Crear usuario" }));
+    await waitFor(() =>
+      expect(api.create).toHaveBeenLastCalledWith(
+        expect.objectContaining({ role: "DEVELOPER", finance_access: "VIEW", client_portal_access: true }),
+      ),
+    );
   });
 
   it("asks for confirmation before deactivating", async () => {

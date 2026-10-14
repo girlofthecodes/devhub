@@ -59,6 +59,10 @@ class User(AbstractUser):
 
     @cached_property
     def role(self) -> str | None:
+        return self.primary_role()
+
+    def primary_role(self) -> str | None:
+        """Role from the user's groups, ignoring any portal context pinned on the instance."""
         names = set(self.groups.values_list("name", flat=True)) & ROLE_NAMES
         for candidate in (Role.ADMIN, Role.DEVELOPER, Role.CLIENT, Role.VISITOR):
             if candidate in names:

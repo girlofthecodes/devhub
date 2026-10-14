@@ -48,8 +48,8 @@ export function ResetPasswordPage() {
             <CircleCheck className="mt-0.5 size-5 text-emerald-500" />
             <p className="text-sm text-muted">{confirm.data.detail}</p>
           </div>
-          <Link to="/login" className="text-sm font-medium text-accent hover:underline">
-            Ir a iniciar sesión
+          <Link to="/" className="text-sm font-medium text-accent hover:underline">
+            Elegir portal e iniciar sesión
           </Link>
         </div>
       ) : (

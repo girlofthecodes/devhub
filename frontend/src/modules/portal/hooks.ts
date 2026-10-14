@@ -22,6 +22,10 @@ export function usePortalReleases(id: string) {
   return useQuery({ queryKey: ["portal", "releases", id], queryFn: () => portalApi.releases(id) });
 }
 
+export function usePortalContracts() {
+  return useQuery({ queryKey: ["portal", "contracts"], queryFn: portalApi.contracts });
+}
+
 export function usePortfolio(enabled = true) {
   return useQuery({ queryKey: ["portal", "portfolio"], queryFn: portalApi.portfolio, enabled });
 }

@@ -232,11 +232,13 @@ erDiagram
   }
 ```
 
-## Roles y permisos (Fases 1–6)
+## Roles y permisos (Fases 1–7)
 
 | Recurso / acción | ADMIN | DEVELOPER | CLIENT | VISITOR | Anónimo |
 |---|---|---|---|---|---|
-| Login / logout / perfil / cambio de contraseña | ✅ | ✅ | ✅ | ✅ | login |
+| Login en `/admin/login` (`POST /auth/admin/login/`) | ✅ | ✅ | ❌ | ❌ | — |
+| Login en `/cliente/login` (`POST /auth/client/login/`) | solo con acceso de cliente adicional | solo con acceso de cliente adicional | ✅ | ✅ | — |
+| Logout / perfil / cambio de contraseña | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Recuperación de contraseña | — | — | — | — | ✅ |
 | Usuarios: listar, crear, editar, activar/desactivar, revocar sesiones | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Organizaciones: crear, editar, activar/desactivar | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -258,15 +260,22 @@ erDiagram
 | Monitoreo: configurar o «Verificar ahora» | ✅ | responsable o MAINTAINER | ❌ | ❌ | ❌ |
 | Portal: disponibilidad de sus aplicaciones (solo estado) | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Portal: aplicaciones autorizadas, versiones publicadas, abrir demo | ❌ (usa el panel) | ❌ | ✅ (solo su organización) | ❌ | ❌ |
+| Portal: contratos propios marcados como visibles (sin importes) | ❌ | ❌ | ✅ (solo su organización) | ❌ | ❌ |
+| Negocio y Rentabilidad: consultar | ✅ | solo con permiso financiero explícito (consulta o gestión) | ❌ | ❌ | ❌ |
+| Negocio y Rentabilidad: registrar y modificar | ✅ | solo con permiso financiero de gestión | ❌ | ❌ | ❌ |
 | Portafolio público | ✅ | ✅ | ✅ | ✅ | ✅ (si está habilitado) |
-| Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → login |
-| Portal `/portal` (UI) | → panel | → panel | ✅ | ✅ | → login |
+| Panel `/admin` (UI) | ✅ | ✅ | → portal | → portal | → `/admin/login` |
+| Portal `/cliente` (UI) | → panel | → panel | ✅ | ✅ | → `/cliente/login` |
+
+Desde la Fase 7, el portal elegido al iniciar sesión se guarda en la sesión y fija el **rol efectivo**
+de toda la sesión (`apps/users/portals.py`). Un usuario con rol interno y acceso de cliente adicional
+actúa como CLIENT en una sesión del portal y como ADMIN/DEVELOPER en una del panel; nunca ambos a la vez.
 
 ## Reglas de negocio (Fase 1)
 
 **Usuarios**
 1. El correo es el identificador de inicio de sesión. Se guarda en minúsculas y es único.
-2. Cada usuario tiene exactamente un rol. Al cambiarlo se reemplaza el grupo anterior.
+2. Cada usuario tiene exactamente un rol principal. Al cambiarlo se reemplaza el grupo anterior. Desde la Fase 7, un ADMIN o DEVELOPER puede tener además acceso de cliente (grupo CLIENT adicional), que se conserva al cambiar entre roles internos.
 3. Solo `ADMIN` tiene `is_staff` (acceso al Django admin de soporte).
 4. Un administrador no puede cambiar su propio rol ni desactivar su propia cuenta.
 5. Debe existir al menos un administrador activo (regla defensiva en la capa de servicios).

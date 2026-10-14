@@ -56,7 +56,7 @@ function SidebarLink({
   return (
     <NavLink
       to={item.to}
-      end={item.to === "/admin"}
+      end={item.end || item.to === "/admin"}
       onClick={onNavigate}
       title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
@@ -79,7 +79,9 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
   return (
     <nav aria-label="Navegación principal" className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
       {adminNavigation.map((group) => {
-        const items = group.items.filter((i) => user.role && i.roles.includes(user.role));
+        const items = group.items.filter(
+          (i) => user.role && i.roles.includes(user.role) && (!i.requiresFinance || user.finance_access !== "NONE"),
+        );
         if (items.length === 0) return null;
         return (
           <div key={group.section}>
@@ -177,7 +179,7 @@ export function AdminLayout() {
               <Breadcrumbs />
             </div>
             <ThemeToggle className="hidden sm:inline-flex" />
-            <UserMenu profilePath="/admin/profile" loginPath="/login" />
+            <UserMenu profilePath="/admin/profile" loginPath="/admin/login" />
           </header>
           <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />

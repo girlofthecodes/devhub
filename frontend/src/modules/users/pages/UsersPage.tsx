@@ -94,7 +94,18 @@ export function UsersPage() {
     {
       key: "role",
       header: "Rol",
-      cell: (u) => (u.role ? <Badge tone={roleTone[u.role]}>{u.role_label}</Badge> : "—"),
+      cell: (u) =>
+        u.role ? (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge tone={roleTone[u.role]}>{u.role_label}</Badge>
+            {u.role !== "CLIENT" && u.client_portal_access && <Badge tone="success">+ Portal de clientes</Badge>}
+            {u.role === "DEVELOPER" && u.finance_access !== "NONE" && (
+              <Badge tone="warning">Finanzas: {u.finance_access === "MANAGE" ? "gestión" : "consulta"}</Badge>
+            )}
+          </span>
+        ) : (
+          "—"
+        ),
     },
     {
       key: "status",

@@ -12,7 +12,7 @@ from .conftest import PASSWORD
 
 pytestmark = pytest.mark.django_db
 
-LOGIN = "/api/v1/auth/login/"
+LOGIN = "/api/v1/auth/admin/login/"
 ME = "/api/v1/auth/me/"
 
 

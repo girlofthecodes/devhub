@@ -1,6 +1,6 @@
 import { ApiError, ensureCsrf, http } from "@/services/http";
 
-import type { CurrentUser } from "./types";
+import type { CurrentUser, Portal } from "./types";
 
 export const authApi = {
   /** Returns the current user, or null when there is no valid session. */
@@ -14,9 +14,10 @@ export const authApi = {
     }
   },
 
-  async login(payload: { email: string; password: string }): Promise<CurrentUser> {
+  /** Logs in to one portal. The server rejects accounts without access to that portal. */
+  async login({ portal, ...payload }: { portal: Portal; email: string; password: string }): Promise<CurrentUser> {
     await ensureCsrf();
-    const { data } = await http.post<CurrentUser>("/auth/login/", payload);
+    const { data } = await http.post<CurrentUser>(`/auth/${portal}/login/`, payload);
     return data;
   },
 

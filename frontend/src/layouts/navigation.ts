@@ -1,5 +1,11 @@
 import {
   Activity,
+  BarChart3,
+  BriefcaseBusiness,
+  FileSignature,
+  HandCoins,
+  PieChart,
+  Receipt,
   Building2,
   FolderKanban,
   GitBranch,
@@ -22,6 +28,10 @@ export interface NavItem {
   roles: readonly Role[];
   /** Roadmap phase in which the module ships; shown disabled until then. */
   availableInPhase?: number;
+  /** Shown only with explicit finance access (UX only; the API enforces it). */
+  requiresFinance?: boolean;
+  /** Active only on this exact path (not on nested routes). */
+  end?: boolean;
 }
 
 const STAFF: readonly Role[] = ["ADMIN", "DEVELOPER"];
@@ -45,6 +55,17 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
       { label: "Despliegues", to: "/admin/deployments", icon: Rocket, roles: STAFF },
       { label: "Trazabilidad", to: "/admin/traceability", icon: GitBranch, roles: STAFF },
       { label: "Monitoreo", to: "/admin/monitoring", icon: Activity, roles: STAFF },
+    ],
+  },
+  {
+    section: "Negocio y Rentabilidad",
+    items: [
+      { label: "Resumen", to: "/admin/business", icon: PieChart, roles: STAFF, requiresFinance: true, end: true },
+      { label: "Aplicaciones comerciales", to: "/admin/business/applications", icon: BriefcaseBusiness, roles: STAFF, requiresFinance: true },
+      { label: "Contratos", to: "/admin/business/contracts", icon: FileSignature, roles: STAFF, requiresFinance: true },
+      { label: "Cobros", to: "/admin/business/receivables", icon: HandCoins, roles: STAFF, requiresFinance: true },
+      { label: "Gastos", to: "/admin/business/expenses", icon: Receipt, roles: STAFF, requiresFinance: true },
+      { label: "Reportes", to: "/admin/business/reports", icon: BarChart3, roles: STAFF, requiresFinance: true },
     ],
   },
   {

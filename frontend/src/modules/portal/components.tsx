@@ -33,7 +33,7 @@ export function AvailabilityBadge({ availability }: { availability: PortalApp["a
 export function DemoButton({ appId, className, size = "md" }: { appId: string; className?: string; size?: "sm" | "md" }) {
   return (
     <a
-      href={`/portal/apps/${appId}/demo`}
+      href={`/cliente/apps/${appId}/demo`}
       target="_blank"
       rel="noopener"
       className={cn(
@@ -50,7 +50,7 @@ export function DemoButton({ appId, className, size = "md" }: { appId: string; c
 export function PortalAppCard({ app }: { app: PortalApp }) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md">
-      <Link to={`/portal/apps/${app.id}`} className="group flex flex-1 flex-col p-5">
+      <Link to={`/cliente/apps/${app.id}`} className="group flex flex-1 flex-col p-5">
         <div className="flex items-start gap-3">
           <ProjectLogo name={app.name} url={app.logo_url} />
           <div className="min-w-0 flex-1">

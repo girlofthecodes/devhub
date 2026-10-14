@@ -51,8 +51,8 @@ function ClientHome() {
         subtitle={orgs.length ? `Aplicaciones compartidas con ${orgs.join(", ")}.` : "Tu cuenta aún no está asociada a ninguna organización."}
       />
       <div className="mb-8 grid gap-4 sm:grid-cols-2">
-        <Stat icon={AppWindow} label="Aplicaciones disponibles" value={summary.data?.applications} to="/portal/apps" />
-        <Stat icon={CirclePlay} label="Demostraciones" value={summary.data?.demos} to="/portal/demos" />
+        <Stat icon={AppWindow} label="Aplicaciones disponibles" value={summary.data?.applications} to="/cliente/apps" />
+        <Stat icon={CirclePlay} label="Demostraciones" value={summary.data?.demos} to="/cliente/demos" />
       </div>
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <section aria-labelledby="apps-title">
@@ -60,7 +60,7 @@ function ClientHome() {
             <h2 id="apps-title" className="text-sm font-semibold text-fg">
               Mis aplicaciones
             </h2>
-            <Link to="/portal/apps" className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+            <Link to="/cliente/apps" className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
               Ver todas <ArrowRight className="size-4" />
             </Link>
           </div>

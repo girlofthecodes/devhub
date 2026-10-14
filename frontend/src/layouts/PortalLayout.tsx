@@ -1,4 +1,4 @@
-import { AppWindow, CirclePlay, House, User, type LucideIcon } from "lucide-react";
+import { AppWindow, CirclePlay, FileText, House, User, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 
 import { Logo } from "@/components/Logo";
@@ -18,10 +18,11 @@ interface PortalNavItem {
 }
 
 const items: PortalNavItem[] = [
-  { label: "Inicio", to: "/portal", icon: House },
-  { label: "Mis aplicaciones", to: "/portal/apps", icon: AppWindow, clientOnly: true },
-  { label: "Demostraciones", to: "/portal/demos", icon: CirclePlay, clientOnly: true },
-  { label: "Mi perfil", to: "/portal/profile", icon: User },
+  { label: "Inicio", to: "/cliente", icon: House },
+  { label: "Mis aplicaciones", to: "/cliente/apps", icon: AppWindow, clientOnly: true },
+  { label: "Demostraciones", to: "/cliente/demos", icon: CirclePlay, clientOnly: true },
+  { label: "Mis contratos", to: "/cliente/contracts", icon: FileText, clientOnly: true },
+  { label: "Mi perfil", to: "/cliente/profile", icon: User },
 ];
 
 function PortalNavLink({ item }: { item: PortalNavItem }) {
@@ -42,7 +43,7 @@ function PortalNavLink({ item }: { item: PortalNavItem }) {
   return (
     <NavLink
       to={item.to}
-      end={item.to === "/portal"}
+      end={item.to === "/cliente"}
       className={({ isActive }) =>
         cn(base, isActive ? "bg-accent text-accent-fg" : "text-muted hover:bg-surface-2 hover:text-fg")
       }
@@ -69,7 +70,7 @@ export function PortalLayout() {
             </nav>
             <div className="ml-auto flex items-center gap-2 md:ml-0">
               <ThemeToggle className="hidden sm:inline-flex" />
-              <UserMenu profilePath="/portal/profile" loginPath="/portal/login" />
+              <UserMenu profilePath="/cliente/profile" loginPath="/cliente/login" />
             </div>
           </div>
           <nav

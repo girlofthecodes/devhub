@@ -1,5 +1,6 @@
 import type { BadgeTone } from "@/components/ui/Badge";
 import { http } from "@/services/http";
+import type { FinanceAccess } from "@/modules/auth/types";
 import type { ListParams, Paginated, Role } from "@/types/api";
 
 export interface User {
@@ -10,6 +11,9 @@ export interface User {
   full_name: string;
   role: Role | null;
   role_label: string;
+  /** Additional client-portal access of an internal user (CLIENT group next to the role). */
+  client_portal_access: boolean;
+  finance_access: FinanceAccess;
   is_active: boolean;
   date_joined: string;
   last_login: string | null;
@@ -28,10 +32,32 @@ export interface UserCreatePayload {
   first_name: string;
   last_name: string;
   role: Role;
+  client_portal_access?: boolean;
+  finance_access?: FinanceAccess;
   password?: string;
 }
 
-export type UserUpdatePayload = Partial<Pick<UserCreatePayload, "first_name" | "last_name" | "role">>;
+export type UserUpdatePayload = Partial<
+  Pick<UserCreatePayload, "first_name" | "last_name" | "role" | "client_portal_access" | "finance_access">
+>;
+
+export const FINANCE_ACCESS_OPTIONS: { value: FinanceAccess; label: string }[] = [
+  { value: "NONE", label: "Sin acceso" },
+  { value: "VIEW", label: "Consulta (solo lectura)" },
+  { value: "MANAGE", label: "Gestión (registrar y modificar)" },
+];
+
+/** Keeps only the access settings that apply to the selected role. */
+export function normalizeAccess<T extends { role: Role; client_portal_access: boolean; finance_access: FinanceAccess }>(
+  values: T,
+): T {
+  const staff = values.role === "ADMIN" || values.role === "DEVELOPER";
+  return {
+    ...values,
+    client_portal_access: staff ? values.client_portal_access : false,
+    finance_access: values.role === "DEVELOPER" ? values.finance_access : "NONE",
+  };
+}
 
 export const ROLE_OPTIONS: { value: Role; label: string; description: string }[] = [
   { value: "ADMIN", label: "Administrador", description: "Control completo de DevHub." },

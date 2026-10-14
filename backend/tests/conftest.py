@@ -83,3 +83,11 @@ def make_project(db, admin_user):
 @pytest.fixture(autouse=True)
 def _media_root(settings, tmp_path):
     settings.MEDIA_ROOT = str(tmp_path / "media")
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Throttle counters live in the cache: isolate them between tests."""
+    from django.core.cache import cache
+
+    cache.clear()

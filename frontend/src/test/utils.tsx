@@ -19,7 +19,11 @@ export function makeUser(overrides: Partial<CurrentUser> = {}): CurrentUser {
     is_active: true,
     date_joined: "2026-01-01T00:00:00Z",
     last_login: null,
+    client_portal_access: false,
+    finance_access: "MANAGE",
     organizations: [],
+    portal: overrides.role === "CLIENT" || overrides.role === "VISITOR" ? "client" : "admin",
+    available_portals: overrides.role === "CLIENT" || overrides.role === "VISITOR" ? ["client"] : ["admin"],
     ...overrides,
   };
 }

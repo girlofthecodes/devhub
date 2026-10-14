@@ -4,11 +4,12 @@ import { Link, useNavigate } from "react-router";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
-import { useAuthenticatedUser, useLogout } from "@/modules/auth/hooks";
+import { useCurrentUser, useLogout } from "@/modules/auth/hooks";
 import { cn } from "@/utils/cn";
 
 export function UserMenu({ profilePath, loginPath }: { profilePath: string; loginPath: string }) {
-  const user = useAuthenticatedUser();
+  // The session may become null while logging out (before navigating away).
+  const { data: user } = useCurrentUser();
   const logout = useLogout();
   const navigate = useNavigate();
   const toast = useToast();
@@ -37,6 +38,8 @@ export function UserMenu({ profilePath, loginPath }: { profilePath: string; logi
       onError: () => toast.error("La sesión se cerró localmente", "No se pudo contactar al servidor."),
     });
   }
+
+  if (!user) return null;
 
   return (
     <div ref={ref} className="relative">

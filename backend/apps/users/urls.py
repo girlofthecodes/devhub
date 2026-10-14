@@ -8,7 +8,8 @@ router.register("users", views.UserViewSet, basename="user")
 
 urlpatterns = [
     path("auth/csrf/", views.CsrfView.as_view(), name="auth-csrf"),
-    path("auth/login/", views.LoginView.as_view(), name="auth-login"),
+    path("auth/admin/login/", views.AdminLoginView.as_view(), name="auth-admin-login"),
+    path("auth/client/login/", views.ClientLoginView.as_view(), name="auth-client-login"),
     path("auth/logout/", views.LogoutView.as_view(), name="auth-logout"),
     path("auth/me/", views.MeView.as_view(), name="auth-me"),
     path("auth/change-password/", views.ChangePasswordView.as_view(), name="auth-change-password"),

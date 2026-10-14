@@ -73,20 +73,20 @@ beforeEach(() => {
 
 describe("PortalHomePage", () => {
   it("shows the client dashboard with real counts, apps and news", async () => {
-    renderPage(<PortalHomePage />, "/portal", { user: client });
+    renderPage(<PortalHomePage />, "/cliente", { user: client });
     expect(await screen.findByText("Hola, Carla")).toBeInTheDocument();
     expect(await screen.findByText("Aplicaciones compartidas con Acme.")).toBeInTheDocument();
     expect(screen.getByText("Aplicaciones disponibles").previousElementSibling).toHaveTextContent("1");
     expect(await screen.findByRole("link", { name: /Portal de Pedidos/ })).toBeInTheDocument();
     expect(screen.getByText("Sin monitoreo")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Abrir demo" })).toHaveAttribute("href", "/portal/apps/p-1/demo");
+    expect(screen.getByRole("link", { name: "Abrir demo" })).toHaveAttribute("href", "/cliente/apps/p-1/demo");
   });
 
   it("shows only the public portfolio to visitors", async () => {
     api.portfolio.mockResolvedValue([
       { name: "Público", slug: "publico", description: "Visible para todos", logo_url: null, technologies: ["Vue"], site_url: "" },
     ]);
-    renderPage(<PortalHomePage />, "/portal", { user: makeUser({ role: "VISITOR" }) });
+    renderPage(<PortalHomePage />, "/cliente", { user: makeUser({ role: "VISITOR" }) });
     expect(await screen.findByText("Visible para todos")).toBeInTheDocument();
     expect(api.summary).not.toHaveBeenCalled();
     expect(api.apps).not.toHaveBeenCalled();
@@ -95,7 +95,7 @@ describe("PortalHomePage", () => {
 
 describe("PortalAppDetailPage", () => {
   const renderDetail = () =>
-    renderRoutes([{ path: "/portal/apps/:id", element: <PortalAppDetailPage /> }], "/portal/apps/p-1", { user: client });
+    renderRoutes([{ path: "/cliente/apps/:id", element: <PortalAppDetailPage /> }], "/cliente/apps/p-1", { user: client });
 
   it("shows functional info, version, access and release notes as plain text", async () => {
     renderDetail();
@@ -121,8 +121,8 @@ describe("PortalAppDetailPage", () => {
 describe("DemoLaunchPage", () => {
   function renderLaunch() {
     const qc = new QueryClient();
-    const router = createMemoryRouter([{ path: "/portal/apps/:id/demo", element: <DemoLaunchPage /> }], {
-      initialEntries: ["/portal/apps/p-1/demo"],
+    const router = createMemoryRouter([{ path: "/cliente/apps/:id/demo", element: <DemoLaunchPage /> }], {
+      initialEntries: ["/cliente/apps/p-1/demo"],
     });
     return render(
       <StrictMode>

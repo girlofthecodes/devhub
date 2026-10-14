@@ -16,6 +16,13 @@ from common.permissions import IsAdmin
 
 from . import services
 from .models import User
+from .portals import (
+    DENIED_MESSAGES,
+    PORTAL_SESSION_KEY,
+    Portal,
+    apply_portal_context,
+    role_for_portal,
+)
 from .roles import Role
 from .serializers import (
     ChangePasswordSerializer,
@@ -43,27 +50,67 @@ class CsrfView(APIView):
         return Response({"detail": "ok"})
 
 
-@method_decorator(csrf_protect, name="dispatch")
-class LoginView(APIView):
+class BaseLoginView(APIView):
+    """Session login bound to one portal. The portal is checked here, on the server, and is
+    stored in the session so every later request is authorized within that portal only."""
+
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
+    portal: str = ""
 
     @extend_schema(request=LoginSerializer, responses=MeSerializer)
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"].strip().lower()
+        # authenticate() also rejects inactive accounts (same generic message).
         user = authenticate(request, email=email, password=serializer.validated_data["password"])
         if user is None:
-            audit.record(AuditAction.LOGIN_FAILED, metadata={"email": email}, request=request)
+            audit.record(
+                AuditAction.LOGIN_FAILED,
+                metadata={"email": email, "portal": self.portal},
+                request=request,
+            )
             return Response(
                 {"code": "invalid_credentials", "detail": "Correo o contraseña incorrectos."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if role_for_portal(user, self.portal) is None:
+            audit.record(
+                AuditAction.LOGIN_FAILED,
+                target=user,
+                metadata={"email": email, "portal": self.portal, "reason": "portal_not_allowed"},
+                request=request,
+            )
+            return Response(
+                {"code": "portal_not_allowed", "detail": DENIED_MESSAGES[self.portal]},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if request.user.is_authenticated:
+            # Changing portal (or account) always ends the previous session.
+            logout(request)
         login(request, user)
-        audit.record(AuditAction.LOGIN_SUCCEEDED, actor=user, target=user, request=request)
+        request.session[PORTAL_SESSION_KEY] = self.portal
+        apply_portal_context(user, self.portal)
+        audit.record(
+            AuditAction.LOGIN_SUCCEEDED,
+            actor=user,
+            target=user,
+            metadata={"portal": self.portal},
+            request=request,
+        )
         return Response(MeSerializer(user).data)
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class AdminLoginView(BaseLoginView):
+    portal = Portal.ADMIN
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class ClientLoginView(BaseLoginView):
+    portal = Portal.CLIENT
 
 
 class LogoutView(APIView):

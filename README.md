@@ -3,10 +3,11 @@
 Plataforma centralizada para administrar, publicar, monitorear y trazar múltiples aplicaciones
 independientes de un equipo de software, desplegada en un Home Lab distribuido. Incluye:
 
-- **DevHub Admin** (`/admin`): panel privado para administradores y desarrolladores.
-- **DevHub Client Portal** (`/portal`): portal independiente para clientes.
+- **Pantalla de bienvenida** (`/`): elige el portal al que se ingresa.
+- **DevHub Admin** (`/admin`, login en `/admin/login`): panel privado para administradores y desarrolladores.
+- **DevHub Client Portal** (`/cliente`, login en `/cliente/login`): portal independiente para clientes.
 
-> Estado: **Fases 1 a 6 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad, portal de clientes, monitoreo y Home Lab). Lo que depende de infraestructura real (VPN entre dos equipos, Cloudflare, runner de GitHub) está preparado y documentado en [docs/homelab.md](docs/homelab.md). Ver [Hoja de ruta](#hoja-de-ruta).
+> Estado: **Fases 1 a 7 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad, portal de clientes, monitoreo, Home Lab y gestión comercial con MRR/ARR). Lo que depende de infraestructura real (VPN entre dos equipos, Cloudflare, runner de GitHub) está preparado y documentado en [docs/homelab.md](docs/homelab.md). Ver [Hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -28,8 +29,9 @@ docker compose up --build     # db + backend + monitor + frontend
 
 | Servicio | URL |
 |---|---|
-| Panel administrativo | http://localhost:5173/login |
-| Portal de clientes | http://localhost:5173/portal/login |
+| Bienvenida (selección de portal) | http://localhost:5173/ |
+| Panel administrativo | http://localhost:5173/admin/login |
+| Portal de clientes | http://localhost:5173/cliente/login |
 | API | http://localhost:5173/api/v1/ (vía proxy de Vite) o http://localhost:8000/api/v1/ |
 | Documentación OpenAPI | http://localhost:8000/api/v1/docs/ |
 | Django admin (soporte) | http://localhost:8000/django-admin/ |
@@ -90,7 +92,8 @@ devhub/
 │   │   ├── deployments/     despliegues, tokens de servicio, integración CI/CD
 │   │   ├── traceability/    eventos inmutables, línea de tiempo, retención
 │   │   ├── portal/          API del portal de clientes, tickets de demo, portafolio público
-│   │   └── monitoring/      health checks, sonda anti-SSRF, worker run_monitor
+│   │   ├── monitoring/      health checks, sonda anti-SSRF, worker run_monitor
+│   │   └── commercial/      contratos, cobros, pagos, gastos, rentabilidad, MRR/ARR
 │   ├── common/              errores, permisos, paginación, saneamiento, request-id
 │   ├── tests/               pytest
 │   └── docker/entrypoint.sh
@@ -100,7 +103,7 @@ devhub/
 │       ├── components/      UI reutilizable (Button, Field, Modal, Table, Toast…)
 │       ├── layouts/         AdminLayout, PortalLayout, AuthLayout
 │       ├── modules/         auth, users, organizations, projects, infrastructure, deployments,
-│       │                    traceability, monitoring, settings, audit, dashboard, portal
+│       │                    traceability, monitoring, commercial, settings, audit, dashboard, portal
 │       ├── services/        cliente HTTP (CSRF, errores normalizados)
 │       └── hooks/ types/ utils/ styles/
 ├── infrastructure/          compose de los servidores A y B, Caddy, pg_hba, VPN, firewall, Cloudflare, systemd
@@ -121,6 +124,7 @@ devhub/
 - [Fase 4 — despliegues, trazabilidad e integración con GitHub Actions](docs/phase-4.md)
 - [Fase 5 — portal de clientes, versiones compartidas y acceso seguro a demos](docs/phase-5.md)
 - [Fase 6 — monitoreo, Home Lab, scripts, backups y CI/CD](docs/phase-6.md)
+- [Fase 7 — accesos por portal, gestión comercial, rentabilidad, MRR y ARR](docs/phase-7.md)
 - [Guía de despliegue en el Home Lab (VPN, túnel, backups, variables, problemas frecuentes)](docs/homelab.md)
 - [Criterios de aceptación del MVP y su evidencia](docs/acceptance.md)
 
@@ -134,3 +138,4 @@ devhub/
 | 4 | Despliegues, trazabilidad, integración GitHub Actions | ✅ Completada |
 | 5 | Portal de clientes: apps autorizadas, demos protegidas, versiones | ✅ Completada |
 | 6 | Monitoreo, Docker Home Lab, VPN, Cloudflare Tunnel, scripts, backups, CI/CD | ✅ Completada (VPN/túnel/runner: preparados, requieren infraestructura real) |
+| 7 | Login separado por portal; contratos de venta y renta, cobros, gastos, rentabilidad, MRR/ARR | ✅ Completada |

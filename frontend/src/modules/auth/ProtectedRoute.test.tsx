@@ -12,7 +12,7 @@ const me = vi.mocked(authApi.me);
 
 const routes = [
   { path: "/login", element: <p>Pantalla de login</p> },
-  { path: "/portal", element: <p>Inicio del portal</p> },
+  { path: "/cliente", element: <p>Inicio del portal</p> },
   {
     path: "/admin",
     element: (
@@ -46,6 +46,12 @@ describe("ProtectedRoute", () => {
     renderRoutes(routes, "/admin");
     expect(await screen.findByText("Inicio del portal")).toBeInTheDocument();
     expect(screen.queryByText("Panel privado")).not.toBeInTheDocument();
+  });
+
+  it("sends a session without a valid role in this portal to the welcome screen", async () => {
+    me.mockResolvedValue(makeUser({ role: null, portal: "client" }));
+    renderRoutes([...routes, { path: "/", element: <p>Bienvenida</p> }], "/admin");
+    expect(await screen.findByText("Bienvenida")).toBeInTheDocument();
   });
 
   it("shows a loading state while the session is resolved", () => {

@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Feedback";
@@ -12,8 +12,12 @@ import { errorMessage } from "@/utils/forms";
 
 import { authApi } from "../api";
 import { forgotPasswordSchema, type ForgotPasswordValues } from "../schemas";
+import { ADMIN_LOGIN, CLIENT_LOGIN } from "../types";
 
 export function ForgotPasswordPage() {
+  const [params] = useSearchParams();
+  const isClient = params.get("portal") === "cliente";
+  const loginPath = isClient ? CLIENT_LOGIN : ADMIN_LOGIN;
   const request = useMutation({ mutationFn: authApi.requestPasswordReset });
   const {
     register,
@@ -26,7 +30,7 @@ export function ForgotPasswordPage() {
 
   return (
     <AuthLayout
-      variant="admin"
+      variant={isClient ? "portal" : "admin"}
       title="Recuperar contraseña"
       subtitle="Te enviaremos un enlace para restablecerla."
     >
@@ -36,7 +40,7 @@ export function ForgotPasswordPage() {
             <Mail className="mt-0.5 size-5 text-accent" />
             <p className="text-sm text-muted">{request.data.detail} El enlace expira en 1 hora.</p>
           </div>
-          <Link to="/login" className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
+          <Link to={loginPath} className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:underline">
             <ArrowLeft className="size-4" /> Volver a iniciar sesión
           </Link>
         </div>
@@ -63,7 +67,7 @@ export function ForgotPasswordPage() {
           <Button type="submit" size="lg" className="w-full justify-center" loading={request.isPending}>
             Enviar enlace
           </Button>
-          <Link to="/login" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
+          <Link to={loginPath} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-fg">
             <ArrowLeft className="size-4" /> Volver
           </Link>
         </form>

@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/ui/Avatar";
@@ -22,9 +22,12 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Alert, ErrorState, Skeleton } from "@/components/ui/Feedback";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { ProjectCommercialTab } from "@/modules/commercial/components/ProjectCommercialTab";
+import { useFinanceAccess } from "@/modules/commercial/hooks";
 import { ProjectActivityCard } from "@/modules/deployments/components/ProjectActivityCard";
 import { ProjectEnvironmentsCard } from "@/modules/infrastructure/components/ProjectEnvironmentsCard";
 import { ApiError } from "@/services/http";
+import { cn } from "@/utils/cn";
 import { formatDateTime } from "@/utils/format";
 import { errorMessage } from "@/utils/forms";
 
@@ -124,6 +127,10 @@ export function ProjectDetailPage() {
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const finance = useFinanceAccess();
+  const [params, setParams] = useSearchParams();
+  // The commercial tab is only offered with explicit finance access (UX; the API enforces it).
+  const tab = finance.canView && params.get("tab") === "comercial" ? "comercial" : "general";
 
   if (project.isPending) {
     return (
@@ -232,96 +239,125 @@ export function ProjectDetailPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="min-w-0 space-y-6">
-          <Card>
-            <CardHeader title="Descripción" />
-            <CardBody className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Interna</p>
-                <p className="whitespace-pre-line text-sm text-fg">
-                  {p.description || <span className="italic text-muted">Sin descripción.</span>}
-                </p>
-              </div>
-              <div>
-                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Para clientes</p>
-                <p className="whitespace-pre-line text-sm text-fg">
-                  {p.client_description || <span className="italic text-muted">Sin descripción para el portal.</span>}
-                </p>
-              </div>
-            </CardBody>
-          </Card>
-          <ProjectEnvironmentsCard
-            project={{ id: p.id, name: p.name, is_archived: p.is_archived }}
-            canEdit={canEdit}
-          />
-          <ReleasesCard project={{ id: p.id, is_archived: p.is_archived }} canEdit={canEdit} />
-          <ProjectMembersCard project={p} />
-          {canManage && (
-            <AccessGrantsCard scope={{ project: { id: p.id, name: p.name, is_archived: p.is_archived } }} />
-          )}
-          <ProjectActivityCard project={{ id: p.id, is_archived: p.is_archived }} canDeploy={canEdit} />
+      {finance.canView && (
+        <div role="tablist" aria-label="Secciones del proyecto" className="mb-6 flex gap-1 border-b border-border">
+          {(
+            [
+              ["general", "General"],
+              ["comercial", "Comercial / Rentabilidad"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              onClick={() => setParams(key === "general" ? {} : { tab: key }, { replace: true })}
+              className={cn(
+                "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+                tab === key ? "border-accent text-accent" : "border-transparent text-muted hover:text-fg",
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
+      )}
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader title="Información" />
-            <CardBody>
-              <dl className="space-y-4 text-sm">
+      {tab === "comercial" ? (
+        <ProjectCommercialTab project={{ id: p.id, name: p.name, is_archived: p.is_archived }} />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+          <div className="min-w-0 space-y-6">
+            <Card>
+              <CardHeader title="Descripción" />
+              <CardBody className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-muted">Responsable</dt>
-                  <dd className="mt-1 flex items-center gap-2 text-fg">
-                    <Avatar name={p.owner.full_name} className="size-6 text-[10px]" />
-                    <span className="truncate">{p.owner.full_name}</span>
-                  </dd>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Interna</p>
+                  <p className="whitespace-pre-line text-sm text-fg">
+                    {p.description || <span className="italic text-muted">Sin descripción.</span>}
+                  </p>
                 </div>
                 <div>
-                  <dt className="text-muted">Identificador</dt>
-                  <dd className="mt-1 font-mono text-fg">{p.slug}</dd>
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted">Para clientes</p>
+                  <p className="whitespace-pre-line text-sm text-fg">
+                    {p.client_description || <span className="italic text-muted">Sin descripción para el portal.</span>}
+                  </p>
                 </div>
-                <div>
-                  <dt className="text-muted">Enlaces</dt>
-                  <dd className="mt-1 space-y-1.5">
-                    {p.site_url ? (
-                      <ExternalLink href={p.site_url} icon={Globe} label={p.site_url.replace(/^https:\/\//, "")} />
-                    ) : null}
-                    {p.repository_url ? (
-                      <ExternalLink href={p.repository_url} icon={GitBranch} label={p.repository_url.replace(/^https:\/\//, "")} />
-                    ) : null}
-                    {p.documentation_url ? (
-                      <ExternalLink href={p.documentation_url} icon={BookOpen} label="Documentación" />
-                    ) : null}
-                    {!p.site_url && !p.repository_url && !p.documentation_url && <span className="text-muted">—</span>}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-muted">Tecnologías</dt>
-                  <dd className="mt-1.5 flex flex-wrap gap-1.5">
-                    {p.technologies.length
-                      ? p.technologies.map((t) => (
-                          <span key={t} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-fg">
-                            {t}
-                          </span>
-                        ))
-                      : "—"}
-                  </dd>
-                </div>
-                <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+              </CardBody>
+            </Card>
+            <ProjectEnvironmentsCard
+              project={{ id: p.id, name: p.name, is_archived: p.is_archived }}
+              canEdit={canEdit}
+            />
+            <ReleasesCard project={{ id: p.id, is_archived: p.is_archived }} canEdit={canEdit} />
+            <ProjectMembersCard project={p} />
+            {canManage && (
+              <AccessGrantsCard scope={{ project: { id: p.id, name: p.name, is_archived: p.is_archived } }} />
+            )}
+            <ProjectActivityCard project={{ id: p.id, is_archived: p.is_archived }} canDeploy={canEdit} />
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader title="Información" />
+              <CardBody>
+                <dl className="space-y-4 text-sm">
                   <div>
-                    <dt className="text-muted">Creado</dt>
-                    <dd className="mt-1 text-fg">{formatDateTime(p.created_at)}</dd>
+                    <dt className="text-muted">Responsable</dt>
+                    <dd className="mt-1 flex items-center gap-2 text-fg">
+                      <Avatar name={p.owner.full_name} className="size-6 text-[10px]" />
+                      <span className="truncate">{p.owner.full_name}</span>
+                    </dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Actualizado</dt>
-                    <dd className="mt-1 text-fg">{formatDateTime(p.updated_at)}</dd>
+                    <dt className="text-muted">Identificador</dt>
+                    <dd className="mt-1 font-mono text-fg">{p.slug}</dd>
                   </div>
-                </div>
-              </dl>
-            </CardBody>
-          </Card>
-          {canEdit && <LogoCard project={p} />}
+                  <div>
+                    <dt className="text-muted">Enlaces</dt>
+                    <dd className="mt-1 space-y-1.5">
+                      {p.site_url ? (
+                        <ExternalLink href={p.site_url} icon={Globe} label={p.site_url.replace(/^https:\/\//, "")} />
+                      ) : null}
+                      {p.repository_url ? (
+                        <ExternalLink href={p.repository_url} icon={GitBranch} label={p.repository_url.replace(/^https:\/\//, "")} />
+                      ) : null}
+                      {p.documentation_url ? (
+                        <ExternalLink href={p.documentation_url} icon={BookOpen} label="Documentación" />
+                      ) : null}
+                      {!p.site_url && !p.repository_url && !p.documentation_url && <span className="text-muted">—</span>}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted">Tecnologías</dt>
+                    <dd className="mt-1.5 flex flex-wrap gap-1.5">
+                      {p.technologies.length
+                        ? p.technologies.map((t) => (
+                            <span key={t} className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-fg">
+                              {t}
+                            </span>
+                          ))
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+                    <div>
+                      <dt className="text-muted">Creado</dt>
+                      <dd className="mt-1 text-fg">{formatDateTime(p.created_at)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted">Actualizado</dt>
+                      <dd className="mt-1 text-fg">{formatDateTime(p.updated_at)}</dd>
+                    </div>
+                  </div>
+                </dl>
+              </CardBody>
+            </Card>
+            {canEdit && <LogoCard project={p} />}
+          </div>
         </div>
-      </div>
+      )}
 
       <ProjectFormDialog open={editing} project={p} onClose={() => setEditing(false)} />
       <ConfirmDialog
