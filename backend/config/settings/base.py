@@ -1,6 +1,7 @@
 """Base settings shared by every environment. All secrets come from the environment."""
 
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from common.env import env, env_bool, env_int, env_list
 
@@ -87,6 +88,19 @@ DATABASES = {
         },
     }
 }
+# Managed hosts (Render, Railway, Heroku...) provide a single DATABASE_URL; it takes precedence
+# over the POSTGRES_* variables. An explicit ?sslmode=... in the URL overrides DB_SSLMODE.
+if _database_url := env("DATABASE_URL", ""):
+    _url = urlsplit(_database_url)
+    DATABASES["default"].update(
+        NAME=unquote(_url.path.lstrip("/")),
+        USER=unquote(_url.username or ""),
+        PASSWORD=unquote(_url.password or ""),
+        HOST=_url.hostname or "",
+        PORT=str(_url.port or 5432),
+    )
+    if _sslmode := parse_qs(_url.query).get("sslmode"):
+        DATABASES["default"]["OPTIONS"]["sslmode"] = _sslmode[0]
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Auth ---------------------------------------------------------------------

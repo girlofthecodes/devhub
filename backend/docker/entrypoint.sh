@@ -13,17 +13,21 @@ import os, sys, time
 import psycopg
 
 deadline = time.monotonic() + int(os.environ.get("DB_WAIT_SECONDS", "60"))
+timeout = int(os.environ.get("DB_CONNECT_TIMEOUT", "5"))
+url = os.environ.get("DATABASE_URL", "")
 params = dict(
     dbname=os.environ.get("POSTGRES_DB", "devhub"),
     user=os.environ.get("POSTGRES_USER", "devhub"),
     password=os.environ.get("POSTGRES_PASSWORD", ""),
     host=os.environ.get("POSTGRES_HOST", "localhost"),
     port=os.environ.get("POSTGRES_PORT", "5432"),
-    connect_timeout=int(os.environ.get("DB_CONNECT_TIMEOUT", "5")),
+    connect_timeout=timeout,
 )
+target = url.split("@")[-1].split("?")[0] if url else f"{params['host']}:{params['port']}"
+print(f"[entrypoint] Database host: {target}")
 while True:
     try:
-        psycopg.connect(**params).close()
+        (psycopg.connect(url, connect_timeout=timeout) if url else psycopg.connect(**params)).close()
         print("[entrypoint] Database is reachable.")
         break
     except psycopg.OperationalError as exc:
