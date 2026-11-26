@@ -8,6 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Security updates of the OS packages (the slim base image can lag behind Debian fixes).
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system --gid 1000 devhub \
     && useradd --system --uid 1000 --gid devhub --home /app --shell /usr/sbin/nologin devhub
 

@@ -85,7 +85,8 @@ jobs:
         run: |
           cp .env.example .env
           docker compose -f compose.yaml config --quiet
-          DEVHUB_ENV_FILE=infrastructure/compose/server-a.env.example \
+          # env_file paths resolve relative to the compose file's directory.
+          DEVHUB_ENV_FILE=./server-a.env.example \
             docker compose -f infrastructure/compose/server-a.compose.yaml \
             --env-file infrastructure/compose/server-a.env.example config --quiet
           docker compose -f infrastructure/compose/server-b.compose.yaml \

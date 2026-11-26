@@ -17,8 +17,9 @@ from apps.traceability import services as trace
 from apps.traceability.models import EventSource, EventType, Severity
 from common.exceptions import DomainError
 
+from . import alerts
 from . import probe as probe_module
-from .models import CheckResult, HealthCheck, HealthStatus
+from .models import AlertKind, CheckResult, HealthCheck, HealthStatus
 
 CONFIG_FIELDS = (
     "path",
@@ -116,6 +117,10 @@ def update_check(check: HealthCheck, *, actor, data: dict, request=None) -> Heal
     if data.get("enabled") is False:
         check.status = HealthStatus.UNKNOWN
     check.save()
+    if data.get("enabled") is False:
+        alerts.resolve_for_environment(
+            check.environment, (AlertKind.SERVICE_DOWN, AlertKind.SLOW_RESPONSE)
+        )
     trace.emit(
         EventType.CONFIGURATION_CHANGED,
         description="Health check actualizado: " + ", ".join(sorted(changes)),
@@ -247,6 +252,7 @@ def record_result(check_id, result: probe_module.ProbeResult, *, at=None) -> Hea
     check.last_status_code = result.status_code
     check.last_error = error
     check.save()
+    alerts.on_health_status(check, new, error, at=now)
     if check.environment.server_id:
         Server.objects.filter(pk=check.environment.server_id).update(last_checked_at=now)
     return check

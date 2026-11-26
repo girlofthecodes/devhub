@@ -1,6 +1,8 @@
 import {
   Activity,
   BarChart3,
+  BellRing,
+  Gauge,
   BriefcaseBusiness,
   FileSignature,
   HandCoins,
@@ -55,6 +57,8 @@ export const adminNavigation: { section: string; items: NavItem[] }[] = [
       { label: "Despliegues", to: "/admin/deployments", icon: Rocket, roles: STAFF },
       { label: "Trazabilidad", to: "/admin/traceability", icon: GitBranch, roles: STAFF },
       { label: "Monitoreo", to: "/admin/monitoring", icon: Activity, roles: STAFF },
+      { label: "Métricas", to: "/admin/metrics", icon: Gauge, roles: STAFF },
+      { label: "Alertas", to: "/admin/alerts", icon: BellRing, roles: STAFF },
     ],
   },
   {

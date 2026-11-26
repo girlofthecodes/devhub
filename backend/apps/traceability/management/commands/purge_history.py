@@ -13,7 +13,7 @@ from django.db import connection, models, transaction
 from django.utils import timezone
 
 from apps.audit.models import AuditLog
-from apps.monitoring.models import CheckResult
+from apps.monitoring.models import Alert, AlertStatus, CheckResult, MetricSample
 from apps.traceability.models import Event
 
 MIN_DAYS = 30
@@ -29,16 +29,30 @@ class Command(BaseCommand):
             "--results-days", type=int, default=settings.CHECK_RESULT_RETENTION_DAYS
         )
         parser.add_argument(
+            "--metrics-days", type=int, default=settings.METRIC_SAMPLE_RETENTION_DAYS
+        )
+        parser.add_argument("--alerts-days", type=int, default=settings.ALERT_RETENTION_DAYS)
+        parser.add_argument(
             "--dry-run", action="store_true", help="Solo muestra cuántos se borrarían."
         )
 
     def handle(
-        self, *args, events_days: int, audit_days: int, results_days: int, dry_run: bool, **options
+        self,
+        *args,
+        events_days: int,
+        audit_days: int,
+        results_days: int,
+        metrics_days: int,
+        alerts_days: int,
+        dry_run: bool,
+        **options,
     ):
         for name, days in (
             ("--events-days", events_days),
             ("--audit-days", audit_days),
             ("--results-days", results_days),
+            ("--metrics-days", metrics_days),
+            ("--alerts-days", alerts_days),
         ):
             if days < MIN_DAYS:
                 raise CommandError(f"{name} debe ser al menos {MIN_DAYS} días.")
@@ -46,10 +60,16 @@ class Command(BaseCommand):
         events = Event.objects.filter(occurred_at__lt=now - timedelta(days=events_days))
         audits = AuditLog.objects.filter(created_at__lt=now - timedelta(days=audit_days))
         results = CheckResult.objects.filter(checked_at__lt=now - timedelta(days=results_days))
+        samples = MetricSample.objects.filter(recorded_at__lt=now - timedelta(days=metrics_days))
+        old_alerts = Alert.objects.filter(
+            status=AlertStatus.RESOLVED, resolved_at__lt=now - timedelta(days=alerts_days)
+        )
         counts = {
             "eventos": events.count(),
             "auditoría": audits.count(),
             "resultados de monitoreo": results.count(),
+            "métricas": samples.count(),
+            "alertas resueltas": old_alerts.count(),
         }
         if dry_run:
             self.stdout.write(f"[dry-run] Se borrarían: {counts}")
@@ -61,4 +81,6 @@ class Command(BaseCommand):
             models.QuerySet.delete(events)
             models.QuerySet.delete(audits)
         results.delete()
+        samples.delete()
+        old_alerts.delete()
         self.stdout.write(self.style.SUCCESS(f"Purgados: {counts}"))

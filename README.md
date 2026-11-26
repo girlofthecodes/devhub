@@ -7,7 +7,7 @@ independientes de un equipo de software, desplegada en un Home Lab distribuido. 
 - **DevHub Admin** (`/admin`, login en `/admin/login`): panel privado para administradores y desarrolladores.
 - **DevHub Client Portal** (`/cliente`, login en `/cliente/login`): portal independiente para clientes.
 
-> Estado: **Fases 1 a 7 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad, portal de clientes, monitoreo, Home Lab y gestión comercial con MRR/ARR). Lo que depende de infraestructura real (VPN entre dos equipos, Cloudflare, runner de GitHub) está preparado y documentado en [docs/homelab.md](docs/homelab.md). Ver [Hoja de ruta](#hoja-de-ruta).
+> Estado: **Fases 1 a 8 completadas y verificadas** (base, proyectos, infraestructura, despliegues, trazabilidad, portal de clientes, monitoreo, Home Lab, gestión comercial con MRR/ARR y métricas internas con alertas). Lo que depende de infraestructura real (VPN entre dos equipos, Cloudflare, runner de GitHub) está preparado y documentado en [docs/homelab.md](docs/homelab.md). Ver [Hoja de ruta](#hoja-de-ruta).
 
 ## Stack
 
@@ -74,6 +74,12 @@ docker compose exec backend python manage.py purge_history --dry-run
 docker compose exec monitor python manage.py run_monitor --once
 ```
 
+```bash
+# Datos de demostración en todos los módulos (solo con DEBUG=true; detén antes el monitor):
+docker compose stop monitor
+docker compose exec backend python manage.py seed_demo
+```
+
 El monitoreo solo consulta URLs públicas `https` registradas en entornos. En local, los
 dominios que resuelven a IPs privadas se rechazan a propósito (protección SSRF).
 
@@ -92,7 +98,7 @@ devhub/
 │   │   ├── deployments/     despliegues, tokens de servicio, integración CI/CD
 │   │   ├── traceability/    eventos inmutables, línea de tiempo, retención
 │   │   ├── portal/          API del portal de clientes, tickets de demo, portafolio público
-│   │   ├── monitoring/      health checks, sonda anti-SSRF, worker run_monitor
+│   │   ├── monitoring/      health checks, sonda anti-SSRF, worker run_monitor, métricas internas, alertas
 │   │   └── commercial/      contratos, cobros, pagos, gastos, rentabilidad, MRR/ARR
 │   ├── common/              errores, permisos, paginación, saneamiento, request-id
 │   ├── tests/               pytest
@@ -111,6 +117,7 @@ devhub/
 │                            create-app-db, devhub-deploy-report (CI → DevHub)
 ├── .github/                 CI (ci.yml), despliegue controlado (deploy-demo.yml), Dependabot
 ├── examples/demo-guard/     middleware de referencia para proteger demos con DevHub
+├── examples/metrics-agent/  agente de referencia que envía métricas internas a DevHub
 ├── docs/                    arquitectura y decisiones
 └── compose.yaml             entorno de desarrollo local
 ```
@@ -125,6 +132,7 @@ devhub/
 - [Fase 5 — portal de clientes, versiones compartidas y acceso seguro a demos](docs/phase-5.md)
 - [Fase 6 — monitoreo, Home Lab, scripts, backups y CI/CD](docs/phase-6.md)
 - [Fase 7 — accesos por portal, gestión comercial, rentabilidad, MRR y ARR](docs/phase-7.md)
+- [Fase 8 — métricas internas, alertas y monitoreo en tiempo real](docs/phase-8.md)
 - [Guía de despliegue en el Home Lab (VPN, túnel, backups, variables, problemas frecuentes)](docs/homelab.md)
 - [Criterios de aceptación del MVP y su evidencia](docs/acceptance.md)
 
@@ -139,3 +147,4 @@ devhub/
 | 5 | Portal de clientes: apps autorizadas, demos protegidas, versiones | ✅ Completada |
 | 6 | Monitoreo, Docker Home Lab, VPN, Cloudflare Tunnel, scripts, backups, CI/CD | ✅ Completada (VPN/túnel/runner: preparados, requieren infraestructura real) |
 | 7 | Login separado por portal; contratos de venta y renta, cobros, gastos, rentabilidad, MRR/ARR | ✅ Completada |
+| 8 | Métricas internas (push), alertas, página de métricas por proyecto en tiempo real, historial y estadísticas | ✅ Completada |

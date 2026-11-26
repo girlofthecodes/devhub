@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -86,3 +87,120 @@ class CheckResult(UUIDModel):
 
     def __str__(self) -> str:
         return f"{self.health_check_id} {self.checked_at:%H:%M:%S} {self.status}"
+
+
+# --- internal metrics (pushed by each application) -----------------------------------
+
+
+class MetricSample(UUIDModel):
+    """Internal metrics reported by the application itself (agent or middleware).
+
+    Push model: the app sends its own numbers with a project-scoped service token, so DevHub
+    never connects to internal addresses to collect them.
+    """
+
+    environment = models.ForeignKey(
+        "infrastructure.Environment", on_delete=models.CASCADE, related_name="metric_samples"
+    )
+    recorded_at = models.DateTimeField(db_index=True)
+    received_at = models.DateTimeField(auto_now_add=True)
+    cpu_percent = models.FloatField("CPU (%)", null=True, blank=True)
+    memory_percent = models.FloatField("memoria (%)", null=True, blank=True)
+    memory_used_mb = models.PositiveIntegerField("memoria usada (MB)", null=True, blank=True)
+    requests_per_minute = models.FloatField("peticiones/min", null=True, blank=True)
+    error_rate_percent = models.FloatField("tasa de errores (%)", null=True, blank=True)
+    latency_p95_ms = models.PositiveIntegerField("latencia p95 (ms)", null=True, blank=True)
+    active_connections = models.PositiveIntegerField("conexiones activas", null=True, blank=True)
+    process_uptime_seconds = models.PositiveBigIntegerField(
+        "tiempo de actividad del proceso (s)", null=True, blank=True
+    )
+
+    class Meta:
+        ordering = ["-recorded_at"]
+        indexes = [models.Index(fields=["environment", "-recorded_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.environment_id} {self.recorded_at:%H:%M:%S}"
+
+
+METRIC_FIELDS = (
+    "cpu_percent",
+    "memory_percent",
+    "memory_used_mb",
+    "requests_per_minute",
+    "error_rate_percent",
+    "latency_p95_ms",
+    "active_connections",
+    "process_uptime_seconds",
+)
+
+
+# --- alerts ----------------------------------------------------------------------------
+
+
+class AlertKind(models.TextChoices):
+    SERVICE_DOWN = "SERVICE_DOWN", "Servicio caído"
+    SLOW_RESPONSE = "SLOW_RESPONSE", "Servicio degradado"
+    HIGH_CPU = "HIGH_CPU", "CPU alta"
+    HIGH_MEMORY = "HIGH_MEMORY", "Memoria alta"
+    HIGH_ERROR_RATE = "HIGH_ERROR_RATE", "Tasa de errores alta"
+    HIGH_LATENCY = "HIGH_LATENCY", "Latencia alta"
+    METRICS_STALE = "METRICS_STALE", "Sin métricas recientes"
+
+
+class AlertStatus(models.TextChoices):
+    OPEN = "OPEN", "Abierta"
+    ACKNOWLEDGED = "ACKNOWLEDGED", "Reconocida"
+    RESOLVED = "RESOLVED", "Resuelta"
+
+
+ACTIVE_ALERT_STATUSES = (AlertStatus.OPEN, AlertStatus.ACKNOWLEDGED)
+
+
+class Alert(TimeStampedModel):
+    """A condition that needs attention. At most one active alert per (environment, kind)."""
+
+    environment = models.ForeignKey(
+        "infrastructure.Environment", on_delete=models.CASCADE, related_name="alerts"
+    )
+    kind = models.CharField(max_length=20, choices=AlertKind.choices, db_index=True)
+    severity = models.CharField(max_length=10, default="WARNING", db_index=True)
+    status = models.CharField(
+        max_length=14, choices=AlertStatus.choices, default=AlertStatus.OPEN, db_index=True
+    )
+    message = models.CharField(max_length=255)
+    value = models.FloatField(null=True, blank=True)
+    threshold = models.FloatField(null=True, blank=True)
+    hits = models.PositiveIntegerField("detecciones", default=1)
+    opened_at = models.DateTimeField(db_index=True)
+    last_seen_at = models.DateTimeField()
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    acknowledged_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-opened_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["environment", "kind"],
+                condition=~models.Q(status="RESOLVED"),
+                name="alert_one_active_per_environment_kind",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} · {self.environment}"
+
+    @property
+    def is_active(self) -> bool:
+        return self.status != AlertStatus.RESOLVED
+
+    @property
+    def duration_seconds(self) -> int:
+        end = self.resolved_at or timezone.now()
+        return max(0, int((end - self.opened_at).total_seconds()))

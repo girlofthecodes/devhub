@@ -16,7 +16,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.db.utils import DatabaseError
 
-from apps.monitoring import services
+from apps.monitoring import alerts, services
 
 logger = logging.getLogger("devhub.monitor")
 
@@ -58,6 +58,13 @@ class Command(BaseCommand):
         self._stop = True
 
     def run_pass(self) -> int:
+        # Applications that stopped pushing metrics open METRICS_STALE.
+        try:
+            alerts.evaluate_stale_metrics()
+        except DatabaseError:
+            raise
+        except Exception:
+            logger.exception("Monitor: error evaluando métricas sin reportar")
         checks = list(services.due_checks()[: settings.MONITOR_MAX_PER_PASS])
         if not checks:
             return 0

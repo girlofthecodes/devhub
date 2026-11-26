@@ -31,6 +31,9 @@
   --fin-profit: #1baf7a;
   --fin-subscription: #6250d6;
   --fin-sale: #eda100;
+  /* Monitoring metric series (same validated pair as income/expense; CPU vs memory). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
 }
 
 .dark {
@@ -53,6 +56,8 @@
   --fin-profit: #199e70;
   --fin-subscription: #9085e9;
   --fin-sale: #c98500;
+  --series-1: #3987e5;
+  --series-2: #d95926;
 }
 
 /* Client portal: warmer, teal identity. */

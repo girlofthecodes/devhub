@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CheckResult, HealthCheck
+from .models import Alert, CheckResult, HealthCheck, MetricSample
 
 
 @admin.register(HealthCheck)
@@ -34,4 +34,34 @@ class CheckResultAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(MetricSample)
+class MetricSampleAdmin(admin.ModelAdmin):
+    list_display = [
+        "environment",
+        "recorded_at",
+        "cpu_percent",
+        "memory_percent",
+        "requests_per_minute",
+        "error_rate_percent",
+    ]
+    list_select_related = ["environment__project"]
+    date_hierarchy = "recorded_at"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Alert)
+class AlertAdmin(admin.ModelAdmin):
+    list_display = ["kind", "environment", "severity", "status", "opened_at", "resolved_at"]
+    list_filter = ["status", "severity", "kind"]
+    list_select_related = ["environment__project"]
+
+    def has_add_permission(self, request):
         return False

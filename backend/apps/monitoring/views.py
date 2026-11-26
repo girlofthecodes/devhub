@@ -1,24 +1,32 @@
 from datetime import timedelta
 
+import django_filters
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from apps.deployments.authentication import IsServiceToken, ServiceTokenAuthentication
 from apps.infrastructure.models import Environment, EnvironmentStatus
 from apps.projects import selectors as project_selectors
 from common.permissions import IsStaffMember
 
-from . import services
-from .models import HealthCheck, HealthStatus
+from . import alerts, metrics, services
+from .models import ACTIVE_ALERT_STATUSES, Alert, AlertStatus, HealthCheck, HealthStatus
 from .serializers import (
+    AlertSerializer,
+    AlertSummarySerializer,
     CheckResultSerializer,
     HealthCheckSerializer,
     HealthCheckUpdateSerializer,
     HealthCheckWriteSerializer,
+    MetricIngestSerializer,
+    MetricSampleSerializer,
     MonitoringSummarySerializer,
 )
 
@@ -135,3 +143,155 @@ class MonitoringSummaryView(APIView):
                 ).count(),
             }
         )
+
+
+# --- internal metrics: per-project overview, history and statistics --------------------
+
+
+class MetricsOverviewView(APIView):
+    """All visible projects with availability, internal metrics and active alerts."""
+
+    permission_classes = [IsStaffMember]
+
+    @extend_schema(operation_id="monitoring_projects_list", responses=OpenApiTypes.OBJECT)
+    def get(self, request):
+        return Response(metrics.overview(project_selectors.projects_visible_to(request.user)))
+
+
+class ProjectMetricsView(APIView):
+    permission_classes = [IsStaffMember]
+
+    @extend_schema(
+        operation_id="monitoring_projects_retrieve",
+        parameters=[
+            OpenApiParameter("hours", int, description="Ventana (1–720 h). Por defecto 24."),
+            OpenApiParameter("environment", str, description="Entorno (por defecto el principal)."),
+        ],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request, pk):
+        project = project_selectors.projects_visible_to(request.user).active().filter(pk=pk).first()
+        if project is None:
+            raise NotFound("Proyecto no encontrado.")
+        try:
+            hours = int(request.query_params.get("hours", 24))
+        except ValueError:
+            hours = 24
+        return Response(
+            metrics.project_detail(
+                project,
+                environment_id=request.query_params.get("environment") or None,
+                hours=hours,
+            )
+        )
+
+
+# --- alerts ----------------------------------------------------------------------------
+
+
+class AlertFilter(django_filters.FilterSet):
+    project = django_filters.UUIDFilter(field_name="environment__project_id")
+    status = django_filters.CharFilter(method="filter_status")
+
+    class Meta:
+        model = Alert
+        fields = ["environment", "kind", "severity"]
+
+    def filter_status(self, queryset, name, value):
+        if value == "ACTIVE":
+            return queryset.filter(status__in=ACTIVE_ALERT_STATUSES)
+        return queryset.filter(status=value)
+
+
+class AlertViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Alerts of visible projects. Editors of the project may acknowledge or resolve them."""
+
+    serializer_class = AlertSerializer
+    permission_classes = [IsStaffMember]
+    filterset_class = AlertFilter
+    search_fields = ["environment__project__name", "message"]
+    ordering_fields = ["opened_at", "severity", "last_seen_at"]
+    ordering = ["-opened_at"]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Alert.objects.none()
+        return Alert.objects.filter(
+            environment__project__in=project_selectors.projects_visible_to(self.request.user)
+        ).select_related("environment__project", "acknowledged_by", "resolved_by")
+
+    def _edit(self, alert):
+        if not project_selectors.can_edit_project(self.request.user, alert.environment.project):
+            raise PermissionDenied("No tienes permiso para gestionar las alertas de este proyecto.")
+
+    @extend_schema(request=None, responses=AlertSerializer)
+    @action(detail=True, methods=["post"])
+    def acknowledge(self, request, pk=None):
+        alert = self.get_object()
+        self._edit(alert)
+        alerts.acknowledge(alert, actor=request.user, request=request)
+        return Response(self.get_serializer(self.get_queryset().get(pk=alert.pk)).data)
+
+    @extend_schema(request=None, responses=AlertSerializer)
+    @action(detail=True, methods=["post"])
+    def resolve(self, request, pk=None):
+        alert = self.get_object()
+        self._edit(alert)
+        alerts.resolve(alert, actor=request.user, request=request)
+        return Response(self.get_serializer(self.get_queryset().get(pk=alert.pk)).data)
+
+    @extend_schema(responses=AlertSummarySerializer)
+    @action(detail=False, methods=["get"], filterset_class=None, pagination_class=None)
+    def summary(self, request):
+        qs = self.get_queryset()
+        now = timezone.now()
+        week = now - timedelta(days=7)
+        durations = [
+            (end - start).total_seconds()
+            for start, end in qs.filter(
+                status=AlertStatus.RESOLVED, resolved_at__gte=week
+            ).values_list("opened_at", "resolved_at")
+        ]
+        mttr = round(sum(durations) / len(durations)) if durations else None
+        return Response(
+            {
+                "open": qs.filter(status=AlertStatus.OPEN).count(),
+                "acknowledged": qs.filter(status=AlertStatus.ACKNOWLEDGED).count(),
+                "critical": qs.filter(
+                    status__in=ACTIVE_ALERT_STATUSES, severity="CRITICAL"
+                ).count(),
+                "resolved_7d": len(durations),
+                "opened_24h": qs.filter(opened_at__gte=now - timedelta(hours=24)).count(),
+                "mttr_seconds_7d": mttr,
+            }
+        )
+
+
+# --- integration: applications push their own metrics ----------------------------------
+
+
+class IntegrationMetricsView(APIView):
+    """POST a metrics sample. Service token, scoped to the token's projects."""
+
+    authentication_classes = [ServiceTokenAuthentication]
+    permission_classes = [IsServiceToken]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "metrics"
+
+    @extend_schema(request=MetricIngestSerializer, responses={201: MetricSampleSerializer})
+    def post(self, request):
+        serializer = MetricIngestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        project = request.auth.projects.filter(slug=data.pop("project")).first()
+        if project is None:
+            raise NotFound("Proyecto no encontrado o fuera del alcance del token.")
+        environment = (
+            Environment.objects.select_related("project")
+            .filter(project=project, kind=data.pop("environment"))
+            .first()
+        )
+        if environment is None:
+            raise NotFound("El proyecto no tiene configurado ese entorno.")
+        sample = metrics.ingest_sample(environment, data)
+        return Response(MetricSampleSerializer(sample).data, status=status.HTTP_201_CREATED)

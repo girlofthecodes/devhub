@@ -175,6 +175,30 @@ MONITOR_MAX_WORKERS = env_int("MONITOR_MAX_WORKERS", 8)
 MONITOR_MAX_PER_PASS = env_int("MONITOR_MAX_PER_PASS", 200)
 MONITOR_HEARTBEAT_FILE = env("MONITOR_HEARTBEAT_FILE", "/tmp/devhub-monitor-heartbeat")  # noqa: S108
 CHECK_RESULT_RETENTION_DAYS = env_int("CHECK_RESULT_RETENTION_DAYS", 30)
+# Internal metrics pushed by each application (POST integrations/metrics/) and alert rules.
+METRIC_SAMPLE_RETENTION_DAYS = env_int("METRIC_SAMPLE_RETENTION_DAYS", 30)
+ALERT_RETENTION_DAYS = env_int("ALERT_RETENTION_DAYS", 365)
+# An environment that reported metrics and goes quiet for this long opens METRICS_STALE.
+MONITOR_METRICS_STALE_SECONDS = env_int("MONITOR_METRICS_STALE_SECONDS", 600)
+# (warning, critical) thresholds; a sample at or above "warning" opens/keeps the alert.
+MONITOR_ALERT_THRESHOLDS = {
+    "cpu_percent": (
+        env_int("MONITOR_ALERT_CPU_WARN", 85),
+        env_int("MONITOR_ALERT_CPU_CRIT", 95),
+    ),
+    "memory_percent": (
+        env_int("MONITOR_ALERT_MEMORY_WARN", 85),
+        env_int("MONITOR_ALERT_MEMORY_CRIT", 95),
+    ),
+    "error_rate_percent": (
+        env_int("MONITOR_ALERT_ERROR_RATE_WARN", 5),
+        env_int("MONITOR_ALERT_ERROR_RATE_CRIT", 15),
+    ),
+    "latency_p95_ms": (
+        env_int("MONITOR_ALERT_LATENCY_WARN_MS", 1500),
+        env_int("MONITOR_ALERT_LATENCY_CRIT_MS", 3000),
+    ),
+}
 
 # --- Cache (used by throttling) ----------------------------------------------
 CACHES = {
@@ -211,6 +235,7 @@ REST_FRAMEWORK = {
         "login": env("THROTTLE_LOGIN", "10/min"),
         "password_reset": env("THROTTLE_PASSWORD_RESET", "5/hour"),
         "integrations": env("THROTTLE_INTEGRATIONS", "120/min"),
+        "metrics": env("THROTTLE_METRICS", "600/min"),
         "demo_access": env("THROTTLE_DEMO_ACCESS", "30/hour"),
     },
     "NUM_PROXIES": env_int("DJANGO_NUM_PROXIES", 0),

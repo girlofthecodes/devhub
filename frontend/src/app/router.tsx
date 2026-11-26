@@ -32,6 +32,7 @@ import {
   PortalContractsPage,
   PortalDemosPage,
 } from "@/modules/portal/pages";
+import { AlertsPage, MetricsOverviewPage, ProjectMetricsPage } from "@/modules/monitoring/metricsPages";
 import { HealthCheckDetailPage, MonitoringPage } from "@/modules/monitoring/pages";
 import { PortalHomePage } from "@/modules/portal/PortalHomePage";
 import { ProjectDetailPage } from "@/modules/projects/pages/ProjectDetailPage";
@@ -113,6 +114,15 @@ export const routes: RouteObject[] = [
           { path: ":id", element: <HealthCheckDetailPage />, handle: { crumb: "Health check" } },
         ],
       },
+      {
+        path: "metrics",
+        handle: { crumb: "Métricas" },
+        children: [
+          { index: true, element: <MetricsOverviewPage /> },
+          { path: ":id", element: <ProjectMetricsPage />, handle: { crumb: "Proyecto" } },
+        ],
+      },
+      { path: "alerts", element: <AlertsPage />, handle: { crumb: "Alertas" } },
       {
         path: "business",
         handle: { crumb: "Negocio y Rentabilidad" },

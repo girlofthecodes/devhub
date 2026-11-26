@@ -52,6 +52,8 @@ class AuditAction(models.TextChoices):
     DEMO_ACCESS_ISSUED = "DEMO_ACCESS_ISSUED", "Acceso a demo emitido"
     HEALTH_CHECK_CREATED = "HEALTH_CHECK_CREATED", "Health check creado"
     HEALTH_CHECK_UPDATED = "HEALTH_CHECK_UPDATED", "Health check actualizado"
+    ALERT_ACKNOWLEDGED = "ALERT_ACKNOWLEDGED", "Alerta reconocida"
+    ALERT_RESOLVED = "ALERT_RESOLVED", "Alerta resuelta"
     COMMERCIAL_PROFILE_UPDATED = "COMMERCIAL_PROFILE_UPDATED", "Estado comercial actualizado"
     CONTRACT_CREATED = "CONTRACT_CREATED", "Contrato creado"
     CONTRACT_UPDATED = "CONTRACT_UPDATED", "Contrato modificado"
