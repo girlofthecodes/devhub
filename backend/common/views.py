@@ -1,7 +1,10 @@
 import logging
+import os
 
 from django.db import connection
 from django.db.utils import OperationalError
+from django.http import Http404, HttpResponse
+from django.views.decorators.http import require_GET
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
@@ -37,3 +40,12 @@ class HealthView(APIView):
             {"status": "ok" if healthy else "degraded", "database": db_status},
             status=status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE,
         )
+
+
+@require_GET
+def vigia_verify(request):
+    """Prueba de propiedad para VIGIA: responde el token en texto plano."""
+    token = os.environ.get("VIGIA_VERIFY_TOKEN", "").strip()
+    if not token:
+        raise Http404
+    return HttpResponse(token, content_type="text/plain; charset=utf-8")

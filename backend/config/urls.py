@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from common.views import HealthView
+from common.views import HealthView, vigia_verify
 
 api_v1 = [
     path("health/", HealthView.as_view(), name="health"),
@@ -22,6 +22,7 @@ api_v1 = [
 ]
 
 urlpatterns = [
+    path(".well-known/vigia-verify.txt", vigia_verify, name="vigia-verify"),
     path("api/v1/", include(api_v1)),
 ]
 
