@@ -34,3 +34,9 @@ if settings.DEBUG:
 
 if getattr(settings, "DJANGO_ADMIN_ENABLED", True):
     urlpatterns.append(path("django-admin/", admin.site.urls))
+
+# --- VIGIA: inicio (cambios automáticos; revísalos antes de hacer commit) ---
+from django.urls import path as _vigia_path  # noqa: E402
+from config.vigia_security_txt import security_txt as _vigia_security_txt  # noqa: E402
+urlpatterns = [_vigia_path(".well-known/security.txt", _vigia_security_txt, name="security-txt"), *urlpatterns]
+# --- VIGIA: fin ---
